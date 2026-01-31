@@ -1,0 +1,51 @@
+package main
+
+import (
+	"github.com/kvalv/shoplist/cart"
+	"fmt"
+)
+
+templ cartList(items []*cart.Item) {
+	<ul>
+		for _, item := range items {
+			<li>
+				<label>
+					<input
+						data-on:change={ fmt.Sprintf("@post('/check?id=%s')", item.ID) }
+						type="checkbox"
+						checked?={ item.Checked }
+					/>
+					{ item.Text }
+				</label>
+			</li>
+		}
+	</ul>
+}
+
+templ page(cart *cart.Cart) {
+	<html id="foo">
+		<head>
+			<script type="module" src="https://cdn.jsdelivr.net/gh/starfederation/datastar@1.0.0-RC.7/bundles/datastar.js"></script>
+			<link rel="stylesheet" href="styles.css"/>
+		</head>
+		<body
+			id="body"
+			data-init="@get('/render')"
+		>
+			<h1>hello world</h1>
+			<form
+				data-on:submit="@post('/add')"
+			>
+				<input
+					data-bind="text"
+					name="text"
+					type="text"
+					placeholder="Add item"
+					autofocus
+				/>
+				<button data-attr:disabled="$text === ''" type="submit">Add</button>
+			</form>
+			@cartList(cart.Items)
+		</body>
+	</html>
+}
