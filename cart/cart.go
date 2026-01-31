@@ -3,23 +3,29 @@ package cart
 import (
 	"time"
 
-	"github.com/kvalv/shoplist/store"
+	"github.com/kvalv/shoplist/stores"
 	gonanoid "github.com/matoous/go-nanoid/v2"
 )
 
 type Cart struct {
 	ID        string
+	Name      string
 	Items     []*Item
 	CreatedAt time.Time
 
+	// Inactive is true when there is at least one item ticked off and the
+	// last tick happened more than 1 day ago. Computed by a background worker.
+	Inactive bool
+
 	// Business logic related to clas ohlson is different than kiwi.
-	TargetStore store.Store
+	TargetStore stores.Store
 }
 
 func (c *Cart) Add(text string) *Item {
 	item := &Item{
-		ID:   gonanoid.Must(8),
-		Text: text,
+		ID:        gonanoid.Must(8),
+		Text:      text,
+		CreatedAt: time.Now(),
 	}
 	c.Items = prepend(c.Items, item)
 	return item

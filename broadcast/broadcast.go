@@ -5,16 +5,16 @@ import (
 	"sync"
 )
 
-type broadcast[T any] struct {
+type Broadcast[T any] struct {
 	subs []*subscriber[T]
 	mu   sync.Mutex
 }
 
-func New[T any]() *broadcast[T] {
-	return &broadcast[T]{}
+func New[T any]() *Broadcast[T] {
+	return &Broadcast[T]{}
 }
 
-func (b *broadcast[T]) Publish(t T) {
+func (b *Broadcast[T]) Publish(t T) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	for _, s := range b.subs {
@@ -25,7 +25,7 @@ func (b *broadcast[T]) Publish(t T) {
 	}
 }
 
-func (b *broadcast[T]) Subscribe() *subscriber[T] {
+func (b *Broadcast[T]) Subscribe() *subscriber[T] {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	ch := make(chan T, 10)

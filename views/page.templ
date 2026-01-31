@@ -1,10 +1,21 @@
-package main
+package views
 
 import (
 	"github.com/kvalv/shoplist/cart"
 	"fmt"
-	"github.com/kvalv/shoplist/store"
+	"github.com/kvalv/shoplist/stores"
 )
+
+func itemText(item *cart.Item) string {
+	if sel := item.Clas.Selected(); sel != nil {
+		loc := "location unknown"
+		if len(sel.Locations) > 0 {
+			loc = sel.Locations[0].Shelf
+		}
+		return fmt.Sprintf("%s (hylle %s, %d in stock)", item.Text, loc, sel.Stock)
+	}
+	return item.Text
+}
 
 templ cartList(items []*cart.Item) {
 	<ul>
@@ -16,18 +27,21 @@ templ cartList(items []*cart.Item) {
 						type="checkbox"
 						checked?={ item.Checked }
 					/>
-					{ item.Text }
+					{ itemText(item) }
 				</label>
 			</li>
 		}
 	</ul>
 }
 
-templ page(cart *cart.Cart) {
+templ Page(cart *cart.Cart) {
+	if cart == nil {
+		return "cart is nil"
+	}
 	<html id="foo">
 		<head>
 			<script type="module" src="https://cdn.jsdelivr.net/gh/starfederation/datastar@1.0.0-RC.7/bundles/datastar.js"></script>
-			<link rel="stylesheet" href="styles.css"/>
+			<link rel="stylesheet" href="/static/styles.css"/>
 		</head>
 		<body
 			id="body"
@@ -39,8 +53,8 @@ templ page(cart *cart.Cart) {
 				data-bind="store"
 				data-on:change="@post('/set-store')"
 			>
-				<option selected?={ cart.TargetStore == store.Kiwi } value="0">Kiwi</option>
-				<option value="1" selected?={ cart.TargetStore == store.ClasOhlson }>Clas Ohlson</option>
+				<option selected?={ cart.TargetStore == stores.Kiwi } value="0">Kiwi</option>
+				<option value="1" selected?={ cart.TargetStore == stores.ClasOhlson }>Clas Ohlson</option>
 			</select>
 			<form
 				data-on:submit="@post('/add')"

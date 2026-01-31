@@ -5,28 +5,48 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
+	"os/signal"
 	"strconv"
 
 	"github.com/a-h/templ"
 	"github.com/kvalv/shoplist/broadcast"
 	"github.com/kvalv/shoplist/cart"
-	"github.com/kvalv/shoplist/store"
+	"github.com/kvalv/shoplist/events"
+	"github.com/kvalv/shoplist/stores"
+	"github.com/kvalv/shoplist/views"
 	"github.com/starfederation/datastar-go/datastar"
 )
 
 func main() {
+	ctx, cancel := context.WithCancel(context.Background())
+	ch := make(chan os.Signal, 10)
+	signal.Notify(ch, os.Interrupt)
+	go func() {
+		<-ch
+		cancel()
+	}()
 
-	repo := cart.NewMock()
-	SetupMockData(repo)
+	repo, err := cart.NewSqlite("file:shop.db")
+	if err != nil {
+		log.Fatalf("failed to create repo: %s", err)
+	}
+	cart.SetupMockData(repo)
 
 	// Whenever a cart (item) is updated, we'll broadcast the event, so
 	// any client receives a new render.
-	bus := broadcast.New[Event]()
+	bus := broadcast.New[events.Event]()
+
+	go RunBackgroundWorker(ctx, repo, bus)
 
 	// Initial render
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		cart, _ := repo.Latest()
-		templ.Handler(page(cart)).ServeHTTP(w, r)
+		templ.Handler(views.Page(cart)).ServeHTTP(w, r)
+	})
+
+	http.HandleFunc("/static/", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "."+r.URL.Path)
 	})
 
 	// Render loop
@@ -38,7 +58,10 @@ func main() {
 
 		// send initial render
 		cart, _ := repo.Latest()
-		sse.PatchElementTempl(page(cart))
+		if cart == nil {
+			panic("no latest cart")
+		}
+		sse.PatchElementTempl(views.Page(cart))
 
 		done := r.Context().Done()
 		for {
@@ -48,7 +71,7 @@ func main() {
 			case <-sub.Ch:
 				log.Printf("got event, rendering new page")
 				cart, _ := repo.Latest()
-				sse.PatchElementTempl(page(cart))
+				sse.PatchElementTempl(views.Page(cart))
 			}
 		}
 	})
@@ -64,29 +87,28 @@ func main() {
 
 		cart, _ := repo.Latest()
 
-		// we'll check if it's an url...
+		event := events.CartUpdated{
+			CartID: cart.ID,
+		}
 		if got, _ := url.ParseRequestURI(signals.Text); got != nil {
 			log.Printf("this is a recipe, trying to parse")
-			// ctx, cancel := context.WithTimeout(r.Context(), time.Second*10)
-			// defer cancel()
 			parts, err := ParseRecipe(context.Background(), got)
 			if err != nil {
 				log.Printf("failed to parse recipe: %v", err)
 			}
 			log.Printf("parsed recipe into %d parts", len(parts))
-			for _, item := range parts {
-				log.Printf("adding item from recipe: %s", item)
-				cart.Add(item)
+			for _, text := range parts {
+				log.Printf("adding item from recipe: %s", text)
+				item := cart.Add(text)
+				event.ItemIDs = append(event.ItemIDs, item.ID)
 			}
 		} else {
-			cart.Add(signals.Text)
+			item := cart.Add(signals.Text)
+			event.ItemIDs = append(event.ItemIDs, item.ID)
 		}
 		repo.Save(cart)
-		sse := datastar.NewSSE(w, r)
-
-		bus.Publish(CartUpdated{CartID: cart.ID})
-
-		sse.PatchSignals([]byte(`{"text": ""}`))
+		bus.Publish(event)
+		datastar.NewSSE(w, r).PatchSignals([]byte(`{"text": ""}`))
 	})
 
 	http.HandleFunc("/check", func(w http.ResponseWriter, r *http.Request) {
@@ -95,7 +117,7 @@ func main() {
 		cart.Get(ID).Toggle()
 		repo.Save(cart)
 
-		bus.Publish(CartUpdated{CartID: cart.ID})
+		bus.Publish(events.CartUpdated{CartID: cart.ID})
 
 		log.Printf("tick called")
 	})
@@ -118,7 +140,7 @@ func main() {
 		repo.Save(cart)
 
 		log.Printf("/store called -- set to %d", cart.TargetStore)
-		bus.Publish(CartUpdated{CartID: cart.ID})
+		bus.Publish(events.CartUpdated{CartID: cart.ID})
 	})
 
 	log.Printf("listening on :3001...")
@@ -128,10 +150,10 @@ func main() {
 
 }
 
-func parseStore(s string) (store.Store, error) {
+func parseStore(s string) (stores.Store, error) {
 	got, err := strconv.ParseInt(s, 10, 64)
 	if err != nil {
 		return 0, err
 	}
-	return store.Store(got), nil
+	return stores.Store(got), nil
 }

@@ -1,4 +1,4 @@
-package main
+package events
 
 type (
 	Event interface {
@@ -6,7 +6,8 @@ type (
 	}
 
 	CartUpdated struct {
-		CartID string
+		CartID  string
+		ItemIDs []string
 	}
 )
 

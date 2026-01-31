@@ -15,6 +15,8 @@ type Options struct {
 	PrintQuery    bool
 	PrintResponse bool
 	Thinking      bool
+	Tools         []*genai.Tool
+	ExecTool      func(name string, args map[string]any) (map[string]any, error)
 }
 
 // StructuredQuery passes the query into the llm and returns the response in the provided struct. Each field _must_ have a 'json' tag, and _may_ have a 'desc' tag.
@@ -38,6 +40,7 @@ func StructuredQuery(ctx context.Context, query string, recv any, opts ...Option
 	if err != nil {
 		return fmt.Errorf("failed to generate schema: %w", err)
 	}
+	cfg.Tools = opt.Tools
 
 	if opt.PrintQuery {
 		fmt.Printf("LLM Query: %s\n", query)
@@ -51,21 +54,52 @@ func StructuredQuery(ctx context.Context, query string, recv any, opts ...Option
 		return fmt.Errorf("failed to create genai client: %w", err)
 	}
 
-	const DEFAULT_MODEL = "gemini-2.5-flash"
-	res, err := client.Models.GenerateContent(ctx, DEFAULT_MODEL, genai.Text(query), cfg)
-	if err != nil {
-		return fmt.Errorf("failed to generate content: %w", err)
+	model := "gemini-2.5-flash"
+	if len(opt.Tools) > 0 {
+		model = "gemini-3-flash-preview"
 	}
 
-	if opt.PrintResponse {
-		fmt.Printf("LLM Response: %s\n", res.Text())
-	}
+	contents := []*genai.Content{{
+		Role:  "user",
+		Parts: []*genai.Part{genai.NewPartFromText(query)},
+	}}
 
-	if err := json.Unmarshal([]byte(res.Text()), recv); err != nil {
-		return fmt.Errorf("failed to unmarshal response: %w", err)
-	}
+	for {
+		res, err := client.Models.GenerateContent(ctx, model, contents, cfg)
+		if err != nil {
+			return fmt.Errorf("failed to generate content: %w", err)
+		}
 
-	return nil
+		// Check for function calls
+		var funcCalls []*genai.FunctionCall
+		for _, part := range res.Candidates[0].Content.Parts {
+			if part.FunctionCall != nil {
+				funcCalls = append(funcCalls, part.FunctionCall)
+			}
+		}
+
+		if len(funcCalls) == 0 {
+			if opt.PrintResponse {
+				fmt.Printf("LLM Response: %s\n", res.Text())
+			}
+			if err := json.Unmarshal([]byte(res.Text()), recv); err != nil {
+				return fmt.Errorf("failed to unmarshal response: %w", err)
+			}
+			return nil
+		}
+
+		// Add assistant response and execute tools
+		contents = append(contents, res.Candidates[0].Content)
+		var funcResps []*genai.Part
+		for _, fc := range funcCalls {
+			output, err := opt.ExecTool(fc.Name, fc.Args)
+			if err != nil {
+				output = map[string]any{"error": err.Error()}
+			}
+			funcResps = append(funcResps, genai.NewPartFromFunctionResponse(fc.Name, output))
+		}
+		contents = append(contents, &genai.Content{Role: "user", Parts: funcResps})
+	}
 }
 
 // takes as input a regular struct (or a pointer to it), and converts it to a genai.GenerateContentConfig.

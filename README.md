@@ -22,3 +22,10 @@ templ generate --watch --proxy="http://localhost:8080" --cmd="go run ."
 
 - The initial load works fine, as I render the full page. Howeer, I'm struggling setting up
   an sse event handler that "re-renders" the page on updates.
+
+http  'https://www.clasohlson.com/no/cocheckout/getCartDataOnReload?variantProductCode=445689000' Cookie:COStoreCookie=200 
+
+
+Feedback:
+- send link to list doesn't work as expected
+- auto-generate list every Sunday, with title 'Week X' where X is the week number.
