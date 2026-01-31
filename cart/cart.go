@@ -3,6 +3,7 @@ package cart
 import (
 	"time"
 
+	"github.com/kvalv/shoplist/store"
 	gonanoid "github.com/matoous/go-nanoid/v2"
 )
 
@@ -10,6 +11,9 @@ type Cart struct {
 	ID        string
 	Items     []*Item
 	CreatedAt time.Time
+
+	// Business logic related to clas ohlson is different than kiwi.
+	TargetStore store.Store
 }
 
 func (c *Cart) Add(text string) *Item {

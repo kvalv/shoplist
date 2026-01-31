@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/kvalv/shoplist/cart"
 	"fmt"
+	"github.com/kvalv/shoplist/store"
 )
 
 templ cartList(items []*cart.Item) {
@@ -33,6 +34,14 @@ templ page(cart *cart.Cart) {
 			data-init="@get('/render')"
 		>
 			<h1>hello world</h1>
+			<select
+				value={ fmt.Sprintf("\"%d\"", cart.TargetStore) }
+				data-bind="store"
+				data-on:change="@post('/set-store')"
+			>
+				<option selected?={ cart.TargetStore == store.Kiwi } value="0">Kiwi</option>
+				<option value="1" selected?={ cart.TargetStore == store.ClasOhlson }>Clas Ohlson</option>
+			</select>
 			<form
 				data-on:submit="@post('/add')"
 			>
