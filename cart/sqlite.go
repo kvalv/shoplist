@@ -42,6 +42,7 @@ func (r *sqliteRepository) Migrate() error {
 			text text not null,
 			checked boolean not null,
 			created_at datetime not null,
+			updated_at datetime,
 			clas_chosen integer,
 			unique(cart_id, text)
 		)`,
@@ -111,9 +112,9 @@ func (r *sqliteRepository) saveItem(cartID string, item *Item) error {
 		chosen = item.Clas.Chosen
 	}
 	_, err = tx.Exec(
-		`INSERT INTO items (id, cart_id, text, checked, created_at, clas_chosen) VALUES (?, ?, ?, ?, ?, ?)
-		 ON CONFLICT(id) DO UPDATE SET checked = excluded.checked, clas_chosen = excluded.clas_chosen`,
-		item.ID, cartID, item.Text, item.Checked, item.CreatedAt, chosen,
+		`INSERT INTO items (id, cart_id, text, checked, created_at, updated_at, clas_chosen) VALUES (?, ?, ?, ?, ?, ?, ?)
+		 ON CONFLICT(id) DO UPDATE SET checked = excluded.checked, updated_at = excluded.updated_at, clas_chosen = excluded.clas_chosen`,
+		item.ID, cartID, item.Text, item.Checked, item.CreatedAt, item.UpdatedAt, chosen,
 	)
 	if err != nil {
 		return err
@@ -152,8 +153,8 @@ func (r *sqliteRepository) Update(item *Item) error {
 		chosen = item.Clas.Chosen
 	}
 	_, err = tx.Exec(
-		`UPDATE items SET text = ?, checked = ?, clas_chosen = ? WHERE id = ?`,
-		item.Text, item.Checked, chosen, item.ID,
+		`UPDATE items SET text = ?, checked = ?, updated_at = ?, clas_chosen = ? WHERE id = ?`,
+		item.Text, item.Checked, item.UpdatedAt, chosen, item.ID,
 	)
 	if err != nil {
 		return err
@@ -199,7 +200,7 @@ func (r *sqliteRepository) Cart(ID string) (*Cart, error) {
 }
 
 func (r *sqliteRepository) loadCartItems(cart *Cart) (*Cart, error) {
-	rows, err := r.db.Query(`SELECT id, text, checked, created_at, clas_chosen FROM items WHERE cart_id = ?`, cart.ID)
+	rows, err := r.db.Query(`SELECT id, text, checked, created_at, updated_at, clas_chosen FROM items WHERE cart_id = ? ORDER BY checked ASC, updated_at DESC`, cart.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -208,8 +209,14 @@ func (r *sqliteRepository) loadCartItems(cart *Cart) (*Cart, error) {
 	for rows.Next() {
 		item := &Item{}
 		var chosen *int
-		if err := rows.Scan(&item.ID, &item.Text, &item.Checked, &item.CreatedAt, &chosen); err != nil {
+		var updatedAt *time.Time
+		if err := rows.Scan(&item.ID, &item.Text, &item.Checked, &item.CreatedAt, &updatedAt, &chosen); err != nil {
 			return nil, err
+		}
+		if updatedAt != nil {
+			item.UpdatedAt = *updatedAt
+		} else {
+			item.UpdatedAt = item.CreatedAt
 		}
 		if chosen != nil {
 			item.Clas = &ClasSearch{Chosen: chosen}

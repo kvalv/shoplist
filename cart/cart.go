@@ -22,10 +22,12 @@ type Cart struct {
 }
 
 func (c *Cart) Add(text string) *Item {
+	now := time.Now()
 	item := &Item{
 		ID:        gonanoid.Must(8),
 		Text:      text,
-		CreatedAt: time.Now(),
+		CreatedAt: now,
+		UpdatedAt: now,
 	}
 	c.Items = prepend(c.Items, item)
 	return item

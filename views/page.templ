@@ -23,9 +23,9 @@ templ cartList(items []*cart.Item) {
 			<li>
 				<label>
 					<input
-						data-on:change={ fmt.Sprintf("@post('/check?id=%s')", item.ID) }
+						data-on:click__prevent={ fmt.Sprintf("@post('/check?id=%s')", item.ID) }
+						data-init={ fmt.Sprintf("el.checked = %t", item.Checked) }
 						type="checkbox"
-						checked?={ item.Checked }
 					/>
 					{ itemText(item) }
 				</label>
