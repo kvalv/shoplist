@@ -34,9 +34,9 @@ templ cartList(items []*cart.Item) {
 	</ul>
 }
 
-templ Page(cart *cart.Cart) {
-	if cart == nil {
-		return "cart is nil"
+templ Page(current *cart.Cart, choices []*cart.Cart) {
+	if current == nil {
+		return "current is nil"
 	}
 	<html id="foo">
 		<head>
@@ -47,7 +47,10 @@ templ Page(cart *cart.Cart) {
 			id="body"
 			data-init="@get('/render')"
 		>
-			<h1>hello world</h1>
+			<div class="header">
+				<h3>{ current.Name }</h3>
+				@CartSelect(current, choices)
+			</div>
 			<select
 				value={ fmt.Sprintf("\"%d\"", cart.TargetStore) }
 				data-bind="store"
@@ -71,4 +74,18 @@ templ Page(cart *cart.Cart) {
 			@cartList(cart.Items)
 		</body>
 	</html>
+}
+
+templ CartSelect(active *cart.Cart, choices []*cart.Cart) {
+	<select
+		name="cart-id"
+		data-on:change="@post('/switch-cart')"
+	>
+		for _, choice := range choices {
+			<option
+				selected?={ active != nil && choice.ID == active.ID }
+				value={ choice.ID }
+			>{ choice.Name }</option>
+		}
+	</select>
 }

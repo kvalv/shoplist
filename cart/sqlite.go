@@ -8,21 +8,19 @@ import (
 	gonanoid "github.com/matoous/go-nanoid/v2"
 )
 
-type sqliteRepository struct {
+type SqliteRepository struct {
 	db *sql.DB
 }
 
-var _ Repository = (*sqliteRepository)(nil)
-
-func NewSqlite(db *sql.DB) (*sqliteRepository, error) {
-	repo := &sqliteRepository{db: db}
+func NewRepository(db *sql.DB) (*SqliteRepository, error) {
+	repo := &SqliteRepository{db: db}
 	if err := repo.Migrate(); err != nil {
 		return nil, err
 	}
 	return repo, nil
 }
 
-func (r *sqliteRepository) Migrate() error {
+func (r *SqliteRepository) Migrate() error {
 	stmts := []string{
 		`create table if not exists carts (
 			id text primary key,
@@ -65,7 +63,7 @@ func (r *sqliteRepository) Migrate() error {
 	return nil
 }
 
-func (r *sqliteRepository) New() (*Cart, error) {
+func (r *SqliteRepository) New() (*Cart, error) {
 	cart := &Cart{
 		ID:        gonanoid.Must(8),
 		CreatedAt: time.Now(),
@@ -77,7 +75,7 @@ func (r *sqliteRepository) New() (*Cart, error) {
 	return cart, err
 }
 
-func (r *sqliteRepository) Save(cart *Cart) error {
+func (r *SqliteRepository) Save(cart *Cart) error {
 	_, err := r.db.Exec(
 		`INSERT INTO carts (id, name, created_at, target_store, inactive) VALUES (?, ?, ?, ?, ?)
 		 ON CONFLICT(id) DO UPDATE SET name = excluded.name, target_store = excluded.target_store, inactive = excluded.inactive`,
@@ -95,7 +93,7 @@ func (r *sqliteRepository) Save(cart *Cart) error {
 	return nil
 }
 
-func (r *sqliteRepository) saveItem(cartID string, item *Item) error {
+func (r *SqliteRepository) saveItem(cartID string, item *Item) error {
 	tx, err := r.db.Begin()
 	if err != nil {
 		return err
@@ -136,7 +134,7 @@ func (r *sqliteRepository) saveItem(cartID string, item *Item) error {
 	return tx.Commit()
 }
 
-func (r *sqliteRepository) Update(item *Item) error {
+func (r *SqliteRepository) Update(item *Item) error {
 	tx, err := r.db.Begin()
 	if err != nil {
 		return err
@@ -176,7 +174,7 @@ func (r *sqliteRepository) Update(item *Item) error {
 	return tx.Commit()
 }
 
-func (r *sqliteRepository) Latest() (*Cart, error) {
+func (r *SqliteRepository) Latest() (*Cart, error) {
 	row := r.db.QueryRow(`SELECT id, name, created_at, target_store, inactive FROM carts ORDER BY created_at DESC LIMIT 1`)
 	cart := &Cart{}
 	if err := row.Scan(&cart.ID, &cart.Name, &cart.CreatedAt, &cart.TargetStore, &cart.Inactive); err != nil {
@@ -185,7 +183,33 @@ func (r *sqliteRepository) Latest() (*Cart, error) {
 	return r.loadCartItems(cart)
 }
 
-func (r *sqliteRepository) Cart(ID string) (*Cart, error) {
+func (r *SqliteRepository) List(n int) ([]*Cart, error) {
+	rows, err := r.db.Query(`SELECT id, name, created_at, target_store, inactive FROM carts ORDER BY created_at DESC LIMIT ?`, n)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var carts []*Cart
+	for rows.Next() {
+		cart := &Cart{}
+		if err := rows.Scan(&cart.ID, &cart.Name, &cart.CreatedAt, &cart.TargetStore, &cart.Inactive); err != nil {
+			return nil, err
+		}
+		carts = append(carts, cart)
+	}
+
+	for i, cart := range carts {
+		cart, err := r.loadCartItems(cart)
+		if err != nil {
+			return nil, err
+		}
+		carts[i] = cart
+	}
+	return carts, nil
+}
+
+func (r *SqliteRepository) Cart(ID string) (*Cart, error) {
 	row := r.db.QueryRow(`SELECT id, name, created_at, target_store, inactive FROM carts WHERE id = ?`, ID)
 	cart := &Cart{}
 	if err := row.Scan(&cart.ID, &cart.Name, &cart.CreatedAt, &cart.TargetStore, &cart.Inactive); err != nil {
@@ -194,7 +218,7 @@ func (r *sqliteRepository) Cart(ID string) (*Cart, error) {
 	return r.loadCartItems(cart)
 }
 
-func (r *sqliteRepository) loadCartItems(cart *Cart) (*Cart, error) {
+func (r *SqliteRepository) loadCartItems(cart *Cart) (*Cart, error) {
 	rows, err := r.db.Query(`SELECT id, text, checked, created_at, updated_at, clas_chosen FROM items WHERE cart_id = ? ORDER BY checked ASC, updated_at DESC`, cart.ID)
 	if err != nil {
 		return nil, err
@@ -227,7 +251,7 @@ func (r *sqliteRepository) loadCartItems(cart *Cart) (*Cart, error) {
 	return cart, nil
 }
 
-func (r *sqliteRepository) loadClasCandidates(item *Item) error {
+func (r *SqliteRepository) loadClasCandidates(item *Item) error {
 	rows, err := r.db.Query(
 		`SELECT gtm_id, name, price, url, picture, reviews, stock, area, shelf
 		 FROM clas_candidates WHERE item_id = ? ORDER BY idx`, item.ID,

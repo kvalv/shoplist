@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/a-h/templ"
 	"github.com/kvalv/shoplist/cart"
+	"github.com/kvalv/shoplist/commands"
 	"github.com/kvalv/shoplist/cron"
 	"github.com/kvalv/shoplist/events"
 	"github.com/kvalv/shoplist/stores"
@@ -29,7 +31,7 @@ func main() {
 		Addr: ":3001",
 	}
 
-	ch := make(chan os.Signal, 10)
+	ch := make(chan os.Signal)
 	signal.Notify(ch, os.Interrupt)
 	go func() {
 		<-ch
@@ -47,21 +49,22 @@ func main() {
 	}
 	defer db.Close()
 
-	repo, err := cart.NewSqlite(db)
+	repo, err := cart.NewRepository(db)
 	if err != nil {
 		log.Error("failed to create repo", "error", err)
 		os.Exit(1)
 	}
+
 	cron := cron.New(ctx, cron.BackendSqlite(db)).
 		WithLogger(logger("cron")).
 		WithPollInterval(time.Minute * 30)
 	defer cron.Stop()
 
-	cart.SetupMockData(repo)
-
 	// Whenever a cart (item) is updated, we'll broadcast the event, so
 	// any client receives a new render.
-	bus := events.NewBus[events.Event](logger("bus"))
+	bus := events.NewBus(logger("bus"))
+
+	cart.SetupMockData(repo)
 
 	go RunBackgroundWorker(
 		ctx,
@@ -73,8 +76,8 @@ func main() {
 
 	// Initial render
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		cart, _ := repo.Latest()
-		templ.Handler(views.Page(cart)).ServeHTTP(w, r)
+		carts, _ := repo.List(5)
+		templ.Handler(views.Page(carts[0], carts)).ServeHTTP(w, r)
 	})
 
 	http.HandleFunc("/static/", func(w http.ResponseWriter, r *http.Request) {
@@ -89,21 +92,24 @@ func main() {
 		defer sub.Close()
 
 		// send initial render
-		cart, _ := repo.Latest()
-		if cart == nil {
+		carts, _ := repo.List(5)
+		if len(carts) == 0 {
 			panic("no latest cart")
 		}
-		sse.PatchElementTempl(views.Page(cart))
+		sse.PatchElementTempl(views.Page(carts[0], carts))
 
 		done := r.Context().Done()
 		for {
 			select {
 			case <-done:
 				return
-			case <-sub.Ch:
-				log.Info("got event, rendering new page")
-				cart, _ := repo.Latest()
-				sse.PatchElementTempl(views.Page(cart))
+			case event := <-sub.Ch:
+				carts, _ := repo.List(5)
+				log.Info("render fat morph",
+					"event", fmt.Sprintf("%T", event),
+					"cartID", carts[0].ID,
+				)
+				sse.PatchElementTempl(views.Page(carts[0], carts))
 			}
 		}
 	})
@@ -115,9 +121,8 @@ func main() {
 		if err := datastar.ReadSignals(r, &signals); err != nil {
 			log.Error("failed to read signals", "error", err)
 		}
-		log.Info("/add invoked", "text", signals.Text)
-
 		cart, _ := repo.Latest()
+		log.Info("/add invoked", "text", signals.Text, "cartID", cart.ID)
 
 		event := events.CartUpdated{
 			CartID: cart.ID,
@@ -174,6 +179,7 @@ func main() {
 		log.Info("/store called", "store", cart.TargetStore)
 		bus.Publish(events.CartUpdated{CartID: cart.ID})
 	})
+	http.HandleFunc("/switch-cart", commands.NewSwitchCart(repo, bus, log))
 
 	log.Info("starting server", "addr", server.Addr)
 	if err := server.ListenAndServe(); err != nil {

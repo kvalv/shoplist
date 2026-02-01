@@ -9,22 +9,23 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-func NewMock() Repository {
+func NewMock() *SqliteRepository {
 	db, err := sql.Open("sqlite", ":memory:")
 	if err != nil {
 		panic(err)
 	}
-	repo, err := NewSqlite(db)
+	repo, err := NewRepository(db)
 	if err != nil {
 		panic(err)
 	}
 	return repo
 }
 
-func SetupMockData(repo Repository) {
+func SetupMockData(repo *SqliteRepository) {
 	c, _ := repo.New()
 	_, week := time.Now().ISOWeek()
-	c.Name = fmt.Sprintf("Uke %d", week)
+	// suffix := gonanoid.Must(3)
+	c.Name = fmt.Sprintf("Uke %d %s", week, c.ID)
 	c.Add("bringebærsyltetøy").SetChecked()
 	c.Add("brus til meg")
 	c.Add("saft")

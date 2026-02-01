@@ -6,18 +6,18 @@ import (
 )
 
 // A simple bus for publishing and subscribing to events of type T
-type Bus[T any] struct {
-	subs []*subscriber[T]
+type Bus struct {
+	subs []*subscriber[Event]
 	mu   sync.Mutex
 	log  *slog.Logger
 }
 
 // Creates a new event bus
-func NewBus[T any](log *slog.Logger) *Bus[T] {
-	return &Bus[T]{log: log}
+func NewBus(log *slog.Logger) *Bus {
+	return &Bus{log: log}
 }
 
-func (b *Bus[T]) Publish(t T) {
+func (b *Bus) Publish(t Event) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	for _, s := range b.subs {
@@ -28,11 +28,11 @@ func (b *Bus[T]) Publish(t T) {
 	}
 }
 
-func (b *Bus[T]) Subscribe() *subscriber[T] {
+func (b *Bus) Subscribe() *subscriber[Event] {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	ch := make(chan T, 10)
-	sub := &subscriber[T]{
+	ch := make(chan Event, 10)
+	sub := &subscriber[Event]{
 		Ch: ch,
 	}
 
