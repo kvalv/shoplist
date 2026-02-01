@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/kvalv/shoplist/broadcast"
 	"github.com/kvalv/shoplist/cart"
 	"github.com/kvalv/shoplist/cron"
 	"github.com/kvalv/shoplist/events"
@@ -16,7 +15,7 @@ import (
 func RunBackgroundWorker(
 	ctx context.Context,
 	repo cart.Repository,
-	bus *broadcast.Broadcast[events.Event],
+	bus *events.Bus[events.Event],
 	cron *cron.Cron,
 	log *slog.Logger,
 ) {

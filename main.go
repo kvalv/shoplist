@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/a-h/templ"
-	"github.com/kvalv/shoplist/broadcast"
 	"github.com/kvalv/shoplist/cart"
 	"github.com/kvalv/shoplist/cron"
 	"github.com/kvalv/shoplist/events"
@@ -62,7 +61,7 @@ func main() {
 
 	// Whenever a cart (item) is updated, we'll broadcast the event, so
 	// any client receives a new render.
-	bus := broadcast.New[events.Event](logger("bus"))
+	bus := events.NewBus[events.Event](logger("bus"))
 
 	go RunBackgroundWorker(
 		ctx,

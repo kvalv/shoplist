@@ -1,21 +1,23 @@
-package broadcast
+package events
 
 import (
 	"log/slog"
 	"sync"
 )
 
-type Broadcast[T any] struct {
+// A simple bus for publishing and subscribing to events of type T
+type Bus[T any] struct {
 	subs []*subscriber[T]
 	mu   sync.Mutex
 	log  *slog.Logger
 }
 
-func New[T any](log *slog.Logger) *Broadcast[T] {
-	return &Broadcast[T]{log: log}
+// Creates a new event bus
+func NewBus[T any](log *slog.Logger) *Bus[T] {
+	return &Bus[T]{log: log}
 }
 
-func (b *Broadcast[T]) Publish(t T) {
+func (b *Bus[T]) Publish(t T) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	for _, s := range b.subs {
@@ -26,7 +28,7 @@ func (b *Broadcast[T]) Publish(t T) {
 	}
 }
 
-func (b *Broadcast[T]) Subscribe() *subscriber[T] {
+func (b *Bus[T]) Subscribe() *subscriber[T] {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	ch := make(chan T, 10)
