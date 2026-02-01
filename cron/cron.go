@@ -4,146 +4,214 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"regexp"
+	"slices"
+	"strconv"
 	"strings"
 	"time"
 )
 
 type schedule struct {
-	Minute  filterer
-	Hour    filterer
-	Day     filterer
-	Month   filterer
-	Weekday filterer
+	Minute  []int
+	Hour    []int
+	Day     []int
+	Month   []int
+	Weekday []int
 }
 
 func (s schedule) NextExecution(ref time.Time) time.Time {
-	ch := make(chan time.Time, 10)
-	result := s.Minute.filter(ch)
-	result = s.Hour.filter(ch)
-	result = s.Day.filter(ch)
-	result = s.Weekday.filter(ch)
+	ch := make(chan time.Time, 0)
+	result := make(chan time.Time, 0)
+	result = func(ch <-chan time.Time) chan time.Time {
+		out := make(chan time.Time, 0)
+		go func() {
+			defer close(out)
+			for t := range ch {
+				out <- t // TODO
+			}
+		}()
+		return out
+	}(ch)
+
+	result = minute(s.Minute, result)
+	result = hour(s.Hour, result)
+	result = day(s.Day, result)
+	result = month(s.Month, result)
+	result = weekday(s.Weekday, result)
 
 	for i := 0; ; i++ {
-		candidate := ref.Add(time.Minute * time.Duration(i))
+		test := ref.Add(time.Minute * time.Duration(i))
 		select {
 		case ts := <-result:
-			fmt.Printf("got ts %s\n", ts)
 			return ts
-		case ch <- candidate:
+		case ch <- test:
 		}
 	}
 }
 
-type pattern string
-
-func (p pattern) values(start, end int) []int {
+// parses a full cron pattern, including commas, e.g. "5,10-20/2,*"
+func parsePattern(p string, start, end int) ([]int, error) {
 	var res []int
-	if p == "*" {
-		for i := start; i < end; i++ {
-			res = append(res, i)
+	for _, part := range strings.Split(p, ",") {
+		values, err := parsePart(part, start, end)
+		if err != nil {
+			return nil, err
 		}
+		res = append(res, values...)
 	}
-	if p == "20-40" {
-		for i := 20; i <= 40; i++ {
-			res = append(res, i)
-		}
-	}
-	return res
+	return uniq(res), nil
 }
 
-type filterer interface {
-	filter(ch <-chan time.Time) chan time.Time
+// parses a single cron pattern, e.g. "5", "0-10/2" or "*"
+func parsePart(input string, lower, upper int) ([]int, error) {
+	if input == "*" {
+		var res []int
+		for i := lower; i <= upper; i++ {
+			res = append(res, i)
+		}
+		return res, nil
+	}
+
+	re := regexp.MustCompile(`(\d+)(-\d+)?(/\d+)?`)
+	got := re.FindAllStringSubmatch(strings.TrimSpace(input), -1)
+	if len(got) == 0 {
+		return nil, fmt.Errorf("parseSeq: invalid pattern: %s", input)
+	}
+
+	n := mustInt(got[0][1])
+	if n > upper {
+		return nil, fmt.Errorf("parseSeq: value out of range")
+	}
+	if n < lower {
+		return nil, fmt.Errorf("parseSeq: value out of range")
+	}
+
+	lower = n
+	upper = lower
+	step := 1
+
+	if got[0][2] != "" {
+		upper = mustInt(strings.TrimPrefix(got[0][2], "-"))
+	}
+	if got[0][3] != "" {
+		step = mustInt(strings.TrimPrefix(got[0][3], "/"))
+	}
+
+	var res []int
+	for i := lower; i <= upper; i += step {
+		res = append(res, i)
+	}
+
+	return res, nil
 }
 
-type minute pattern
+func minute(accept []int, ch <-chan time.Time) chan time.Time {
+	// func (m minute) filter(ch <-chan time.Time) chan time.Time {
+	out := make(chan time.Time, 0)
+	// accept := p.values(0, 60)
+	fmt.Printf("minute: accept values %v\n", accept)
 
-func (m minute) filter(ch <-chan time.Time) chan time.Time {
-	out := make(chan time.Time, 10)
 	go func() {
 		defer close(out)
 		for t := range ch {
-			for _, d := range pattern(m).values(0, 60) {
-				out <- withMinute(t, d)
+			if slices.Contains(accept, t.Minute()) {
+				fmt.Printf("minute: accept %s\n", t)
+				out <- t
 			}
 		}
 	}()
 	return out
 }
 
-type hour pattern
+func hour(accept []int, ch <-chan time.Time) chan time.Time {
+	out := make(chan time.Time, 0)
+	fmt.Printf("hour: accept values %v\n", accept)
 
-func (h hour) filter(ch <-chan time.Time) chan time.Time {
-	out := make(chan time.Time, 10)
 	go func() {
 		defer close(out)
 		for t := range ch {
-			for _, d := range pattern(h).values(0, 24) {
-				out <- withHour(t, d)
+			if slices.Contains(accept, t.Hour()) {
+				fmt.Printf("hour: accept %s\n", t)
+				out <- t
 			}
 		}
 	}()
 	return out
 }
 
-type day pattern
+func day(accept []int, ch <-chan time.Time) chan time.Time {
+	out := make(chan time.Time, 0)
+	fmt.Printf("day: accept values %v\n", accept)
 
-func (h day) filter(ch <-chan time.Time) chan time.Time {
-	out := make(chan time.Time, 10)
 	go func() {
 		defer close(out)
 		for t := range ch {
-			out <- t // TODO
-			// for _, d := range pattern(h).values(0, 24) {
-			// 	out <- withHour(t, d)
-			// }
+			if slices.Contains(accept, t.Day()) {
+				fmt.Printf("day: accept %s\n", t)
+				out <- t
+			}
 		}
 	}()
 	return out
 }
 
-type month pattern
-
-func (h month) filter(ch <-chan time.Time) chan time.Time {
-	out := make(chan time.Time, 10)
+func month(accept []int, ch <-chan time.Time) chan time.Time {
+	out := make(chan time.Time, 0)
+	fmt.Printf("month: accept values %v\n", accept)
 	go func() {
 		defer close(out)
 		for t := range ch {
-			out <- t // TODO
-			// for _, d := range pattern(h).values(0, 24) {
-			// 	out <- withHour(t, d)
-			// }
+			if slices.Contains(accept, int(t.Month())) {
+				fmt.Printf("month: accept %s\n", t)
+				out <- t
+			}
 		}
 	}()
 	return out
 }
 
-type weekday pattern
-
-func (h weekday) filter(ch <-chan time.Time) chan time.Time {
-	out := make(chan time.Time, 10)
+func weekday(accept []int, ch <-chan time.Time) chan time.Time {
+	out := make(chan time.Time, 0)
+	fmt.Printf("weekday: accept values %v\n", accept)
 	go func() {
 		defer close(out)
 		for t := range ch {
-			out <- t // TODO
-			// for _, d := range pattern(h).values(0, 24) {
-			// 	out <- withHour(t, d)
-			// }
+			if slices.Contains(accept, int(t.Weekday())) {
+				fmt.Printf("weekday: accept %s\n", t)
+				out <- t
+			}
 		}
 	}()
 	return out
 }
 
+// minute | hour | day | month | weekday
+// - weekday is 0-6 (sun-sat)
 func NewSchedule(pat string) (*schedule, error) {
 	parts := strings.Split(pat, " ")
 	if len(parts) != 5 {
 		return nil, fmt.Errorf("wrong number of parts: expected 5, got %d", len(parts))
 	}
-	s := schedule{
-		Minute:  minute(parts[0]),
-		Hour:    hour(parts[1]),
-		Day:     day(parts[2]),
-		Month:   month(parts[3]),
-		Weekday: weekday(parts[4]),
+
+	var (
+		s   schedule
+		err error
+	)
+
+	if s.Minute, err = parsePattern(parts[0], 0, 59); err != nil {
+		return nil, fmt.Errorf("invalid minute part: %w", err)
+	}
+	if s.Hour, err = parsePattern(parts[1], 0, 23); err != nil {
+		return nil, fmt.Errorf("invalid hour part: %w", err)
+	}
+	if s.Day, err = parsePattern(parts[2], 1, 31); err != nil {
+		return nil, fmt.Errorf("invalid day part: %w", err)
+	}
+	if s.Month, err = parsePattern(parts[3], 1, 12); err != nil {
+		return nil, fmt.Errorf("invalid month part: %w", err)
+	}
+	if s.Weekday, err = parsePattern(parts[4], 0, 6); err != nil {
+		return nil, fmt.Errorf("invalid weekday part: %w", err)
 	}
 
 	return &s, nil
@@ -176,26 +244,20 @@ func (c *cron) Register(
 	panic("todo")
 }
 
-func withMinute(t time.Time, m int) time.Time {
-	return time.Date(
-		t.Year(), t.Month(), t.Day(),
-		t.Hour(), m, t.Second(), t.Nanosecond(),
-		t.Location(),
-	)
+func uniq[T comparable](input []T) []T {
+	var res []T
+	for _, v := range input {
+		if !slices.Contains(res, v) {
+			res = append(res, v)
+		}
+	}
+	return res
 }
 
-func withHour(t time.Time, h int) time.Time {
-	return time.Date(
-		t.Year(), t.Month(), t.Day(),
-		h, t.Minute(), t.Second(), t.Nanosecond(),
-		t.Location(),
-	)
-}
-
-func withDay(t time.Time, d int) time.Time {
-	return time.Date(
-		t.Year(), t.Month(), d,
-		t.Hour(), t.Minute(), t.Second(), t.Nanosecond(),
-		t.Location(),
-	)
+func mustInt(s string) int {
+	n, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		panic(fmt.Sprintf("mustInt: %v", err))
+	}
+	return int(n)
 }
