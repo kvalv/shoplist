@@ -2,262 +2,141 @@ package cron
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
-	"regexp"
-	"slices"
-	"strconv"
-	"strings"
+	"io"
+	"log"
+	"sync"
 	"time"
 )
 
-type schedule struct {
-	Minute  []int
-	Hour    []int
-	Day     []int
-	Month   []int
-	Weekday []int
+// Creates a new Cron instance.
+// It does not handle long-running tasks very well.
+// Still, should be good enough for now
+func New(ctx context.Context, backend Backend) *cron {
+	ctx, cancel := context.WithCancel(ctx)
+	c := &cron{
+		ctx:     ctx,
+		cancel:  cancel,
+		backend: backend,
+		log:     log.New(io.Discard, "", 0),
+	}
+
+	return c
+}
+func (c *cron) WithLogger(logger *log.Logger) *cron {
+	c.log = logger
+	return c
 }
 
-func (s schedule) NextExecution(ref time.Time) time.Time {
-	ch := make(chan time.Time, 0)
-	result := make(chan time.Time, 0)
-	result = func(ch <-chan time.Time) chan time.Time {
-		out := make(chan time.Time, 0)
-		go func() {
-			defer close(out)
-			for t := range ch {
-				out <- t // TODO
-			}
-		}()
-		return out
-	}(ch)
-
-	result = minute(s.Minute, result)
-	result = hour(s.Hour, result)
-	result = day(s.Day, result)
-	result = month(s.Month, result)
-	result = weekday(s.Weekday, result)
-
-	for i := 0; ; i++ {
-		test := ref.Add(time.Minute * time.Duration(i))
+func (c *cron) Run() {
+	c.wg.Add(1)
+	defer c.wg.Done()
+	tick := time.Tick(time.Minute)
+	done := c.ctx.Done()
+	for {
 		select {
-		case ts := <-result:
-			return ts
-		case ch <- test:
+		case <-done:
+			return
+		case <-tick:
+			c.poll()
 		}
 	}
 }
 
-// parses a full cron pattern, including commas, e.g. "5,10-20/2,*"
-func parsePattern(p string, start, end int) ([]int, error) {
-	var res []int
-	for _, part := range strings.Split(p, ",") {
-		values, err := parsePart(part, start, end)
-		if err != nil {
-			return nil, err
-		}
-		res = append(res, values...)
-	}
-	return uniq(res), nil
-}
-
-// parses a single cron pattern, e.g. "5", "0-10/2" or "*"
-func parsePart(input string, lower, upper int) ([]int, error) {
-	if input == "*" {
-		var res []int
-		for i := lower; i <= upper; i++ {
-			res = append(res, i)
-		}
-		return res, nil
-	}
-
-	re := regexp.MustCompile(`(\d+)(-\d+)?(/\d+)?`)
-	got := re.FindAllStringSubmatch(strings.TrimSpace(input), -1)
-	if len(got) == 0 {
-		return nil, fmt.Errorf("parseSeq: invalid pattern: %s", input)
-	}
-
-	n := mustInt(got[0][1])
-	if n > upper {
-		return nil, fmt.Errorf("parseSeq: value out of range")
-	}
-	if n < lower {
-		return nil, fmt.Errorf("parseSeq: value out of range")
-	}
-
-	lower = n
-	upper = lower
-	step := 1
-
-	if got[0][2] != "" {
-		upper = mustInt(strings.TrimPrefix(got[0][2], "-"))
-	}
-	if got[0][3] != "" {
-		step = mustInt(strings.TrimPrefix(got[0][3], "/"))
-	}
-
-	var res []int
-	for i := lower; i <= upper; i += step {
-		res = append(res, i)
-	}
-
-	return res, nil
-}
-
-func minute(accept []int, ch <-chan time.Time) chan time.Time {
-	// func (m minute) filter(ch <-chan time.Time) chan time.Time {
-	out := make(chan time.Time, 0)
-	// accept := p.values(0, 60)
-	fmt.Printf("minute: accept values %v\n", accept)
-
-	go func() {
-		defer close(out)
-		for t := range ch {
-			if slices.Contains(accept, t.Minute()) {
-				fmt.Printf("minute: accept %s\n", t)
-				out <- t
-			}
-		}
-	}()
-	return out
-}
-
-func hour(accept []int, ch <-chan time.Time) chan time.Time {
-	out := make(chan time.Time, 0)
-	fmt.Printf("hour: accept values %v\n", accept)
-
-	go func() {
-		defer close(out)
-		for t := range ch {
-			if slices.Contains(accept, t.Hour()) {
-				fmt.Printf("hour: accept %s\n", t)
-				out <- t
-			}
-		}
-	}()
-	return out
-}
-
-func day(accept []int, ch <-chan time.Time) chan time.Time {
-	out := make(chan time.Time, 0)
-	fmt.Printf("day: accept values %v\n", accept)
-
-	go func() {
-		defer close(out)
-		for t := range ch {
-			if slices.Contains(accept, t.Day()) {
-				fmt.Printf("day: accept %s\n", t)
-				out <- t
-			}
-		}
-	}()
-	return out
-}
-
-func month(accept []int, ch <-chan time.Time) chan time.Time {
-	out := make(chan time.Time, 0)
-	fmt.Printf("month: accept values %v\n", accept)
-	go func() {
-		defer close(out)
-		for t := range ch {
-			if slices.Contains(accept, int(t.Month())) {
-				fmt.Printf("month: accept %s\n", t)
-				out <- t
-			}
-		}
-	}()
-	return out
-}
-
-func weekday(accept []int, ch <-chan time.Time) chan time.Time {
-	out := make(chan time.Time, 0)
-	fmt.Printf("weekday: accept values %v\n", accept)
-	go func() {
-		defer close(out)
-		for t := range ch {
-			if slices.Contains(accept, int(t.Weekday())) {
-				fmt.Printf("weekday: accept %s\n", t)
-				out <- t
-			}
-		}
-	}()
-	return out
-}
-
-// minute | hour | day | month | weekday
-// - weekday is 0-6 (sun-sat)
-func NewSchedule(pat string) (*schedule, error) {
-	parts := strings.Split(pat, " ")
-	if len(parts) != 5 {
-		return nil, fmt.Errorf("wrong number of parts: expected 5, got %d", len(parts))
-	}
-
-	var (
-		s   schedule
-		err error
-	)
-
-	if s.Minute, err = parsePattern(parts[0], 0, 59); err != nil {
-		return nil, fmt.Errorf("invalid minute part: %w", err)
-	}
-	if s.Hour, err = parsePattern(parts[1], 0, 23); err != nil {
-		return nil, fmt.Errorf("invalid hour part: %w", err)
-	}
-	if s.Day, err = parsePattern(parts[2], 1, 31); err != nil {
-		return nil, fmt.Errorf("invalid day part: %w", err)
-	}
-	if s.Month, err = parsePattern(parts[3], 1, 12); err != nil {
-		return nil, fmt.Errorf("invalid month part: %w", err)
-	}
-	if s.Weekday, err = parsePattern(parts[4], 0, 6); err != nil {
-		return nil, fmt.Errorf("invalid weekday part: %w", err)
-	}
-
-	return &s, nil
+func (c *cron) Stop() {
+	c.logf("Stop() called")
+	c.cancel()
+	c.wg.Wait()
+	c.logf("Stop() done")
 }
 
 type cron struct {
-	db *sql.DB
+	ctx          context.Context
+	cancel       context.CancelFunc
+	backend      Backend
+	jobs         []job
+	log          *log.Logger
+	wg           sync.WaitGroup
+	pollInterval time.Duration
 }
 
-func New(db *sql.DB) *cron {
-	return &cron{
-		db: db,
-	}
-}
-
-type Callback func(ctx context.Context, attempt int) error
-
-type Job struct {
-}
-
-func (j Job) NextExecution() time.Time {
-	return time.Now()
-}
-
-func (c *cron) Register(
+func (c *cron) Job(
 	name string,
 	pattern string,
-	f Callback,
-) Job {
-	panic("todo")
-}
-
-func uniq[T comparable](input []T) []T {
-	var res []T
-	for _, v := range input {
-		if !slices.Contains(res, v) {
-			res = append(res, v)
-		}
-	}
-	return res
-}
-
-func mustInt(s string) int {
-	n, err := strconv.ParseInt(s, 10, 64)
+	handler handler,
+) error {
+	sched, err := newSchedule(pattern)
 	if err != nil {
-		panic(fmt.Sprintf("mustInt: %v", err))
+		return fmt.Errorf("failed to parse schedule pattern: %w", err)
 	}
-	return int(n)
+	if err := c.backend.Register(name, time.Now()); err != nil {
+		return fmt.Errorf("failed to register job: %w", err)
+	}
+	c.jobs = append(c.jobs, job{
+		name:     name,
+		schedule: sched,
+		handler:  handler,
+	})
+	return nil
+}
+
+type job struct {
+	name string
+	*schedule
+	handler
+}
+
+type handler func(ctx context.Context, attempt int) error
+
+func (c *cron) poll() {
+	ctx := c.ctx
+	if ctx.Err() != nil {
+		return
+	}
+
+	now := time.Now()
+	var wg sync.WaitGroup
+	defer wg.Wait()
+	c.wg.Add(1)
+	defer c.wg.Done()
+	for _, job := range c.jobs {
+		last, attempt, err := c.backend.LastExecutionFor(job.name)
+		if err != nil {
+			c.logf("failed to fetch last executed: %s", err)
+			continue
+		}
+		if last == nil {
+			panic("Did not expect last to be nil when there's no error.")
+		}
+
+		next := job.schedule.NextExecution(*last)
+		// Allow exact match; happens during test, probably never in reality.
+		if !next.Before(now) {
+			continue
+		}
+
+		wg.Go(func() {
+			if ctx.Err() != nil {
+				c.logf("job %q: context done, skipping execution", job.name)
+				return
+			}
+			c.logf("executing job %q", job.name)
+			t0 := time.Now()
+			if err := job.handler(ctx, attempt+1); err != nil {
+				c.logf("job %q failed. Registering failed attempt. Error: %s.", job.name, err)
+				if err := c.backend.JobFailed(job.name, err.Error()); err != nil {
+					c.logf("failed to register failed attempt: %s", err)
+				}
+				return
+			}
+			if err := c.backend.JobSucceeded(job.name); err != nil {
+				c.logf("failed to register successful attempt: %s", err)
+			}
+			c.logf("job %q done, took %s", job.name, time.Since(t0))
+		})
+	}
+}
+
+func (c *cron) logf(format string, a ...any) {
+	c.log.Printf("[cron]: %s", fmt.Sprintf(format, a...))
 }
