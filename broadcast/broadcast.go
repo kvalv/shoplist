@@ -1,17 +1,18 @@
 package broadcast
 
 import (
-	"log"
+	"log/slog"
 	"sync"
 )
 
 type Broadcast[T any] struct {
 	subs []*subscriber[T]
 	mu   sync.Mutex
+	log  *slog.Logger
 }
 
-func New[T any]() *Broadcast[T] {
-	return &Broadcast[T]{}
+func New[T any](log *slog.Logger) *Broadcast[T] {
+	return &Broadcast[T]{log: log}
 }
 
 func (b *Broadcast[T]) Publish(t T) {
@@ -34,12 +35,11 @@ func (b *Broadcast[T]) Subscribe() *subscriber[T] {
 	}
 
 	sub.close = sync.OnceFunc(func() {
-		log.Printf("[subscriber] Closing")
 		b.mu.Lock()
 		defer b.mu.Unlock()
 		close(ch)
 		sub.closed = true
-		log.Printf("[subscriber] Closed")
+		b.log.Info("subscriber closed")
 	})
 
 	b.subs = append(b.subs, sub)

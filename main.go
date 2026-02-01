@@ -59,7 +59,7 @@ func main() {
 
 	// Whenever a cart (item) is updated, we'll broadcast the event, so
 	// any client receives a new render.
-	bus := broadcast.New[events.Event]()
+	bus := broadcast.New[events.Event](logger("bus"))
 
 	go RunBackgroundWorker(
 		ctx,
