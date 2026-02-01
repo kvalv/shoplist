@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"sync"
 	"time"
 )
@@ -18,12 +18,12 @@ func New(ctx context.Context, backend Backend) *Cron {
 		ctx:     ctx,
 		cancel:  cancel,
 		backend: backend,
-		log:     log.New(io.Discard, "", 0),
+		log:     slog.New(slog.NewTextHandler(io.Discard, nil)),
 	}
 
 	return c
 }
-func (c *Cron) WithLogger(logger *log.Logger) *Cron {
+func (c *Cron) WithLogger(logger *slog.Logger) *Cron {
 	c.log = logger
 	return c
 }
@@ -57,7 +57,7 @@ type Cron struct {
 	cancel       context.CancelFunc
 	backend      Backend
 	jobs         []job
-	log          *log.Logger
+	log          *slog.Logger
 	wg           sync.WaitGroup
 	pollInterval time.Duration
 }
@@ -153,19 +153,10 @@ func (c *Cron) poll() {
 				time.Since(t0),
 				job.schedule.NextExecution(time.Now()).Format(time.DateTime),
 			)
-			{
-				lastRan, _, err := c.backend.LastExecutionFor(job.name)
-				if err != nil {
-					c.logf("job %q: failed to fetch last executed after success: %s", job.name, err)
-					return
-				}
-				tsNext := job.schedule.NextExecution(*lastRan)
-				c.logf("job %q: next execution scheduled at %s", job.name, tsNext.Format(time.DateTime))
-			}
 		})
 	}
 }
 
 func (c *Cron) logf(format string, a ...any) {
-	c.log.Printf(format, a...)
+	c.log.Info(fmt.Sprintf(format, a...))
 }

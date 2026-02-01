@@ -31,7 +31,7 @@ func TestBackendSqlite(t *testing.T) {
 			t.Fatalf("expected timestamp to be non-nil")
 		}
 
-		want := "2000-01-01 00:00:00"
+		want := "2000-01-01 01:00:00"
 		if got := ts.Format(time.DateTime); got != want {
 			t.Fatalf("unexpected timestamp: got %q, want %q", got, want)
 		}

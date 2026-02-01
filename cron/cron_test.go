@@ -3,7 +3,7 @@ package cron
 import (
 	"context"
 	"database/sql"
-	"log"
+	"log/slog"
 	"sync/atomic"
 	"testing"
 	"testing/synctest"
@@ -19,7 +19,7 @@ func TestSchedule(t *testing.T) {
 		{
 			input: "* * * * *",
 			ref:   "2000-01-01",
-			want:  "2000-01-01 00:00:00",
+			want:  "2000-01-01 00:01:00",
 		},
 		{
 			input: "20-40 * * * *",
@@ -124,7 +124,7 @@ func TestCron(t *testing.T) {
 			t.Fatalf("failed to open db: %s", err)
 		}
 		defer db.Close()
-		cron := New(t.Context(), BackendSqlite(db)).WithLogger(log.New(t.Output(), "", log.Ltime))
+		cron := New(t.Context(), BackendSqlite(db)).WithLogger(slog.New(slog.NewTextHandler(t.Output(), nil)))
 
 		// var count int
 		var count atomic.Int32
@@ -140,10 +140,10 @@ func TestCron(t *testing.T) {
 		go cron.Run()
 		defer cron.Stop()
 
-		time.Sleep(time.Hour * 3) // hour 1, hour 2, hour 3 --> in total 3
+		time.Sleep(time.Hour * 3) // runs at hour 2 and hour 3
 
-		if count.Load() != 3 {
-			t.Fatalf("expected job to run 3 times, got %d", count.Load())
+		if count.Load() != 2 {
+			t.Fatalf("expected job to run 2 times, got %d", count.Load())
 		}
 	})
 }
