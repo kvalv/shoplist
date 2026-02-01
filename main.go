@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"time"
 
 	"github.com/a-h/templ"
 	"github.com/kvalv/shoplist/broadcast"
@@ -52,7 +53,9 @@ func main() {
 		log.Error("failed to create repo", "error", err)
 		os.Exit(1)
 	}
-	cron := cron.New(ctx, cron.BackendSqlite(db)).WithLogger(logger("cron"))
+	cron := cron.New(ctx, cron.BackendSqlite(db)).
+		WithLogger(logger("cron")).
+		WithPollInterval(time.Minute * 30)
 	defer cron.Stop()
 
 	cart.SetupMockData(repo)

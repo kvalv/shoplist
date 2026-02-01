@@ -15,16 +15,21 @@ import (
 func New(ctx context.Context, backend Backend) *Cron {
 	ctx, cancel := context.WithCancel(ctx)
 	c := &Cron{
-		ctx:     ctx,
-		cancel:  cancel,
-		backend: backend,
-		log:     slog.New(slog.NewTextHandler(io.Discard, nil)),
+		ctx:          ctx,
+		cancel:       cancel,
+		backend:      backend,
+		log:          slog.New(slog.NewTextHandler(io.Discard, nil)),
+		pollInterval: time.Second,
 	}
 
 	return c
 }
 func (c *Cron) WithLogger(logger *slog.Logger) *Cron {
 	c.log = logger
+	return c
+}
+func (c *Cron) WithPollInterval(d time.Duration) *Cron {
+	c.pollInterval = d
 	return c
 }
 
@@ -43,7 +48,7 @@ func (c *Cron) Run() {
 		)
 	}
 
-	tick := time.Tick(time.Second)
+	tick := time.Tick(c.pollInterval)
 	done := c.ctx.Done()
 	for {
 		select {
