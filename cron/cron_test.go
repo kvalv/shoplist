@@ -143,7 +143,7 @@ func TestCron(t *testing.T) {
 		time.Sleep(time.Hour * 3) // hour 1, hour 2, hour 3 --> in total 3
 
 		if count.Load() != 3 {
-			t.Fatalf("expected job to run 3 times, got %d", count)
+			t.Fatalf("expected job to run 3 times, got %d", count.Load())
 		}
 	})
 }

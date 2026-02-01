@@ -1,13 +1,20 @@
 package cart
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"time"
+
+	_ "modernc.org/sqlite"
 )
 
 func NewMock() Repository {
-	repo, err := NewSqlite(":memory:")
+	db, err := sql.Open("sqlite", ":memory:")
+	if err != nil {
+		panic(err)
+	}
+	repo, err := NewSqlite(db)
 	if err != nil {
 		panic(err)
 	}

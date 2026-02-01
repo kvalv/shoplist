@@ -43,7 +43,7 @@ func (s *sqlite) Register(name string, lastExecuted time.Time) error {
 	_, err := s.db.Exec(`
 		insert or ignore into cron_jobs(name, attempt, executed_at)
 		values (?, 0, ?);
-	`, name, lastExecuted.UTC())
+	`, name, lastExecuted)
 	if err != nil {
 		return fmt.Errorf("sql: %w", err)
 	}
@@ -70,7 +70,7 @@ func (s *sqlite) LastExecutionFor(name string) (*time.Time, int, error) {
 	if !ts.Valid {
 		return nil, attempt, nil
 	}
-	return ptr(ts.Time.UTC()), attempt, nil
+	return ptr(ts.Time), attempt, nil
 }
 
 // JobFailed implements [Backend].
@@ -82,7 +82,7 @@ func (s *sqlite) JobFailed(name string, errmsg string) error {
 			attempt = cron_jobs.attempt + 1,
 			last_error = excluded.last_error,
 			executed_at = excluded.executed_at;
-	`, name, errmsg, time.Now().UTC())
+	`, name, errmsg, time.Now())
 	if err != nil {
 		return fmt.Errorf("sql: %w", err)
 	}
@@ -98,7 +98,7 @@ func (s *sqlite) JobSucceeded(name string) error {
 			attempt = 0,
 			last_error = null,
 			executed_at = excluded.executed_at;
-	`, name, time.Now().UTC())
+	`, name, time.Now())
 	if err != nil {
 		return fmt.Errorf("sql: %w", err)
 	}

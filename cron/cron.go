@@ -12,9 +12,9 @@ import (
 // Creates a new Cron instance.
 // It does not handle long-running tasks very well.
 // Still, should be good enough for now
-func New(ctx context.Context, backend Backend) *cron {
+func New(ctx context.Context, backend Backend) *Cron {
 	ctx, cancel := context.WithCancel(ctx)
-	c := &cron{
+	c := &Cron{
 		ctx:     ctx,
 		cancel:  cancel,
 		backend: backend,
@@ -23,15 +23,17 @@ func New(ctx context.Context, backend Backend) *cron {
 
 	return c
 }
-func (c *cron) WithLogger(logger *log.Logger) *cron {
+func (c *Cron) WithLogger(logger *log.Logger) *Cron {
 	c.log = logger
 	return c
 }
 
-func (c *cron) Run() {
+func (c *Cron) Run() {
+	c.logf("started")
+	defer c.logf("done")
 	c.wg.Add(1)
 	defer c.wg.Done()
-	tick := time.Tick(time.Minute)
+	tick := time.Tick(time.Second)
 	done := c.ctx.Done()
 	for {
 		select {
@@ -43,14 +45,14 @@ func (c *cron) Run() {
 	}
 }
 
-func (c *cron) Stop() {
+func (c *Cron) Stop() {
 	c.logf("Stop() called")
 	c.cancel()
 	c.wg.Wait()
 	c.logf("Stop() done")
 }
 
-type cron struct {
+type Cron struct {
 	ctx          context.Context
 	cancel       context.CancelFunc
 	backend      Backend
@@ -60,11 +62,14 @@ type cron struct {
 	pollInterval time.Duration
 }
 
-func (c *cron) Job(
+func (c *Cron) Job(
 	name string,
 	pattern string,
 	handler handler,
 ) error {
+	if name == "" {
+		return fmt.Errorf("job name cannot be empty")
+	}
 	sched, err := newSchedule(pattern)
 	if err != nil {
 		return fmt.Errorf("failed to parse schedule pattern: %w", err)
@@ -80,6 +85,17 @@ func (c *cron) Job(
 	return nil
 }
 
+// Registers a new job. If the registration fails due to invalid pattern or name, it panics.
+func (c *Cron) Must(
+	name string,
+	pattern string,
+	handler handler,
+) {
+	if err := c.Job(name, pattern, handler); err != nil {
+		panic("cron: failed to register job: " + err.Error())
+	}
+}
+
 type job struct {
 	name string
 	*schedule
@@ -88,7 +104,7 @@ type job struct {
 
 type handler func(ctx context.Context, attempt int) error
 
-func (c *cron) poll() {
+func (c *Cron) poll() {
 	ctx := c.ctx
 	if ctx.Err() != nil {
 		return
@@ -132,11 +148,24 @@ func (c *cron) poll() {
 			if err := c.backend.JobSucceeded(job.name); err != nil {
 				c.logf("failed to register successful attempt: %s", err)
 			}
-			c.logf("job %q done, took %s", job.name, time.Since(t0))
+			c.logf("job %q done, took %s, next execution %s",
+				job.name,
+				time.Since(t0),
+				job.schedule.NextExecution(time.Now()).Format(time.DateTime),
+			)
+			{
+				lastRan, _, err := c.backend.LastExecutionFor(job.name)
+				if err != nil {
+					c.logf("job %q: failed to fetch last executed after success: %s", job.name, err)
+					return
+				}
+				tsNext := job.schedule.NextExecution(*lastRan)
+				c.logf("job %q: next execution scheduled at %s", job.name, tsNext.Format(time.DateTime))
+			}
 		})
 	}
 }
 
-func (c *cron) logf(format string, a ...any) {
-	c.log.Printf("[cron]: %s", fmt.Sprintf(format, a...))
+func (c *Cron) logf(format string, a ...any) {
+	c.log.Printf(format, a...)
 }

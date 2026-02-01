@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"log"
 	"net/http"
 	"net/url"
@@ -12,32 +13,59 @@ import (
 	"github.com/a-h/templ"
 	"github.com/kvalv/shoplist/broadcast"
 	"github.com/kvalv/shoplist/cart"
+	"github.com/kvalv/shoplist/cron"
 	"github.com/kvalv/shoplist/events"
 	"github.com/kvalv/shoplist/stores"
 	"github.com/kvalv/shoplist/views"
 	"github.com/starfederation/datastar-go/datastar"
+	_ "modernc.org/sqlite"
 )
 
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
+	log := logger("[main] ")
+
+	server := http.Server{
+		Addr: ":3001",
+	}
+
 	ch := make(chan os.Signal, 10)
 	signal.Notify(ch, os.Interrupt)
 	go func() {
 		<-ch
+		log.Printf("received interrupt, shutting down...")
 		cancel()
+		if err := server.Shutdown(context.Background()); err != nil {
+			log.Printf("failed to shutdown server: %s", err)
+		}
 	}()
 
-	repo, err := cart.NewSqlite("file:shop.db")
+	db, err := sql.Open("sqlite", "file:shop.db")
+	if err != nil {
+		log.Fatalf("failed to open db: %s", err)
+	}
+	defer db.Close()
+
+	repo, err := cart.NewSqlite(db)
 	if err != nil {
 		log.Fatalf("failed to create repo: %s", err)
 	}
+	cron := cron.New(ctx, cron.BackendSqlite(db)).WithLogger(logger("[cron] "))
+	defer cron.Stop()
+
 	cart.SetupMockData(repo)
 
 	// Whenever a cart (item) is updated, we'll broadcast the event, so
 	// any client receives a new render.
 	bus := broadcast.New[events.Event]()
 
-	go RunBackgroundWorker(ctx, repo, bus)
+	go RunBackgroundWorker(
+		ctx,
+		repo,
+		bus,
+		cron,
+		logger("[worker] "),
+	)
 
 	// Initial render
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -143,11 +171,10 @@ func main() {
 		bus.Publish(events.CartUpdated{CartID: cart.ID})
 	})
 
-	log.Printf("listening on :3001...")
-	if err := http.ListenAndServe(":3001", nil); err != nil {
+	log.Printf("starting server on %s", server.Addr)
+	if err := server.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}
-
 }
 
 func parseStore(s string) (stores.Store, error) {
@@ -156,4 +183,8 @@ func parseStore(s string) (stores.Store, error) {
 		return 0, err
 	}
 	return stores.Store(got), nil
+}
+
+func logger(prefix string) *log.Logger {
+	return log.New(os.Stdout, prefix, log.Ltime)
 }

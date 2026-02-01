@@ -6,7 +6,6 @@ import (
 
 	"github.com/kvalv/shoplist/stores/clasohlson"
 	gonanoid "github.com/matoous/go-nanoid/v2"
-	_ "modernc.org/sqlite"
 )
 
 type sqliteRepository struct {
@@ -15,11 +14,7 @@ type sqliteRepository struct {
 
 var _ Repository = (*sqliteRepository)(nil)
 
-func NewSqlite(dsn string) (*sqliteRepository, error) {
-	db, err := sql.Open("sqlite", dsn)
-	if err != nil {
-		return nil, err
-	}
+func NewSqlite(db *sql.DB) (*sqliteRepository, error) {
 	repo := &sqliteRepository{db: db}
 	if err := repo.Migrate(); err != nil {
 		return nil, err

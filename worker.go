@@ -6,6 +6,7 @@ import (
 
 	"github.com/kvalv/shoplist/broadcast"
 	"github.com/kvalv/shoplist/cart"
+	"github.com/kvalv/shoplist/cron"
 	"github.com/kvalv/shoplist/events"
 	"github.com/kvalv/shoplist/stores"
 	"github.com/kvalv/shoplist/stores/clasohlson"
@@ -15,11 +16,21 @@ func RunBackgroundWorker(
 	ctx context.Context,
 	repo cart.Repository,
 	bus *broadcast.Broadcast[events.Event],
+	cron *cron.Cron,
+	log *log.Logger,
 ) {
 	sub := bus.Subscribe()
-	log.Printf("[worker] Started")
+	log.Printf("Started")
 
 	client := clasohlson.NewClient(clasohlson.CCVest)
+
+	cron.Must("test hvert 1. minutt", "* * * * *", func(ctx context.Context, attempt int) error {
+		log.Printf("I got triggered yo")
+		return nil
+	})
+
+	go cron.Run()
+	defer cron.Stop()
 
 	for {
 		select {

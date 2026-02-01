@@ -20,7 +20,7 @@ type schedule struct {
 type filter = func(t time.Time) bool
 
 func (s schedule) NextExecution(ref time.Time) time.Time {
-	for i := 0; ; i++ {
+	for i := 1; ; i++ {
 		t := ref.Add(time.Minute * time.Duration(i))
 
 		if !every(t, s.minute, s.hour, s.day, s.month, s.weekday) {
