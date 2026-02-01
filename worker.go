@@ -30,6 +30,15 @@ func RunBackgroundWorker(
 		return nil
 	})
 
+	cron.Must("Create new cart on the start of next week", "0 0 * * mon", func(ctx context.Context, attempt int) error {
+		cart, err := repo.New()
+		if err != nil {
+			return fmt.Errorf("failed to create new cart: %w", err)
+		}
+		log.Info("Created new cart", "cartID", cart.ID)
+		return nil
+	})
+
 	go cron.Run()
 	defer cron.Stop()
 

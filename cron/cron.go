@@ -29,10 +29,20 @@ func (c *Cron) WithLogger(logger *slog.Logger) *Cron {
 }
 
 func (c *Cron) Run() {
-	c.logf("started")
-	defer c.logf("done")
 	c.wg.Add(1)
 	defer c.wg.Done()
+
+	c.log.Info("started")
+	defer c.log.Info("done")
+
+	ref := time.Now()
+	for _, job := range c.jobs {
+		c.log.Info("Registered job",
+			"name", job.name,
+			"next", job.schedule.NextExecution(ref).Format(time.DateTime),
+		)
+	}
+
 	tick := time.Tick(time.Second)
 	done := c.ctx.Done()
 	for {
