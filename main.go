@@ -78,8 +78,6 @@ func run(ctx context.Context, log *slog.Logger) error {
 	// any client receives a new render.
 	bus := events.NewBus(logger("bus"))
 
-	// cart.SetupMockData(repo)
-
 	go RunBackgroundWorker(
 		ctx,
 		repo,

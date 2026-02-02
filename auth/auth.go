@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/kvalv/shoplist/events"
 )
@@ -79,6 +80,7 @@ func RegisterUsers(
 				return
 			}
 			bus.Publish(events.UserRegistered{UserID: claims.UserID})
+			time.Sleep(time.Millisecond * 100)
 			next.ServeHTTP(w, r)
 		})
 	}

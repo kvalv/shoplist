@@ -22,6 +22,11 @@ type Cart struct {
 	TargetStore stores.Store
 }
 
+func (c *Cart) WithName(name string) *Cart {
+	c.Name = name
+	return c
+}
+
 func (c *Cart) WithCreator(userID string) *Cart {
 	c.CreatedBy = &userID
 	return c

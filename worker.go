@@ -31,16 +31,10 @@ func RunBackgroundWorker(
 			switch ev := ev.(type) {
 			case events.UserRegistered:
 				log.Info("User registered", "userID", ev.UserID)
-				repo.Save(
-					carts.New().WithCreator(ev.UserID),
+				repo.Save(carts.New().
+					WithName("Min første handleliste").
+					WithCreator(ev.UserID),
 				)
-				// cart, err := repo.New()
-				// if err != nil {
-				// 	log.Error("Failed to create cart", "error", err)
-				// 	continue
-				// }
-				// TODO: collaborator
-				// ...
 
 			case events.CartUpdated:
 				log.Info("Received event", "type", fmt.Sprintf("%T", ev), "event", ev)
