@@ -1,4 +1,4 @@
-package cart
+package carts
 
 import (
 	"time"
@@ -12,6 +12,7 @@ type Cart struct {
 	Name      string
 	Items     []*Item
 	CreatedAt time.Time
+	CreatedBy string
 
 	// Inactive is true when there is at least one item ticked off and the
 	// last tick happened more than 1 day ago. Computed by a background worker.
@@ -19,6 +20,11 @@ type Cart struct {
 
 	// Business logic related to clas ohlson is different than kiwi.
 	TargetStore stores.Store
+}
+
+func (c *Cart) WithCreator(userID string) *Cart {
+	c.CreatedBy = userID
+	return c
 }
 
 func (c *Cart) Add(text string) *Item {

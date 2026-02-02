@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/kvalv/shoplist/cart"
+	"github.com/kvalv/shoplist/carts"
 	"github.com/kvalv/shoplist/events"
 	"github.com/kvalv/shoplist/stores"
 	"github.com/kvalv/shoplist/stores/clasohlson"
@@ -13,7 +13,7 @@ import (
 
 func RunBackgroundWorker(
 	ctx context.Context,
-	repo *cart.SqliteRepository,
+	repo *carts.SqliteRepository,
 	bus *events.Bus,
 	log *slog.Logger,
 ) {
@@ -31,6 +31,9 @@ func RunBackgroundWorker(
 			switch ev := ev.(type) {
 			case events.UserRegistered:
 				log.Info("User registered", "userID", ev.UserID)
+				repo.Save(
+					carts.New().WithCreator(ev.UserID),
+				)
 				// cart, err := repo.New()
 				// if err != nil {
 				// 	log.Error("Failed to create cart", "error", err)
@@ -82,7 +85,7 @@ func RunBackgroundWorker(
 						}
 
 						chosen := 0
-						item.Clas = &cart.ClasSearch{
+						item.Clas = &carts.ClasSearch{
 							Candidates: results,
 							Chosen:     &chosen,
 						}

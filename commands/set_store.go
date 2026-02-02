@@ -5,14 +5,14 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/kvalv/shoplist/cart"
+	"github.com/kvalv/shoplist/carts"
 	"github.com/kvalv/shoplist/events"
 	"github.com/kvalv/shoplist/stores"
 	"github.com/starfederation/datastar-go/datastar"
 )
 
 func NewSetStore(
-	repo *cart.SqliteRepository,
+	repo *carts.SqliteRepository,
 	bus *events.Bus,
 	log *slog.Logger,
 ) http.HandlerFunc {

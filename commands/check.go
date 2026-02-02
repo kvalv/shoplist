@@ -4,12 +4,12 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/kvalv/shoplist/cart"
+	"github.com/kvalv/shoplist/carts"
 	"github.com/kvalv/shoplist/events"
 )
 
 func NewCheckItem(
-	repo *cart.SqliteRepository,
+	repo *carts.SqliteRepository,
 	bus *events.Bus,
 	log *slog.Logger,
 ) http.HandlerFunc {

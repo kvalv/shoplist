@@ -15,7 +15,7 @@ import (
 	"github.com/a-h/templ"
 	"github.com/go-chi/chi/v5"
 	"github.com/kvalv/shoplist/auth"
-	"github.com/kvalv/shoplist/cart"
+	"github.com/kvalv/shoplist/carts"
 	"github.com/kvalv/shoplist/commands"
 	"github.com/kvalv/shoplist/cron"
 	"github.com/kvalv/shoplist/events"
@@ -57,7 +57,7 @@ func run(ctx context.Context, log *slog.Logger) error {
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 
-	repo, err := cart.NewRepository(db)
+	repo, err := carts.NewRepository(db)
 	if err != nil {
 		return fmt.Errorf("failed to create cart repository: %w", err)
 	}
@@ -67,9 +67,10 @@ func run(ctx context.Context, log *slog.Logger) error {
 		WithLogger(logger("cron")).
 		WithPollInterval(time.Minute*30).
 		MustRegister("Create new cart on the start of next week", "0 0 * * mon", func(ctx context.Context, attempt int) error {
-			cart, err := repo.New()
-			if err != nil {
-				return fmt.Errorf("failed to create new cart: %w", err)
+			// TODO: collaborator...
+			cart := carts.New()
+			if err := repo.Save(cart); err != nil {
+				return fmt.Errorf("failed to create cart: %w", err)
 			}
 			log.Info("Created new cart", "cartID", cart.ID)
 			return nil
@@ -81,7 +82,7 @@ func run(ctx context.Context, log *slog.Logger) error {
 	// any client receives a new render.
 	bus := events.NewBus(logger("bus"))
 
-	cart.SetupMockData(db, repo)
+	// cart.SetupMockData(repo)
 
 	go RunBackgroundWorker(
 		ctx,

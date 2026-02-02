@@ -1,4 +1,4 @@
-package cart
+package carts
 
 import (
 	"database/sql"
@@ -22,7 +22,8 @@ func NewMock() *SqliteRepository {
 }
 
 func SetupMockData(repo *SqliteRepository) {
-	c, _ := repo.New()
+	// c, _ := repo.New()
+	c := New()
 	_, week := time.Now().ISOWeek()
 	// suffix := gonanoid.Must(3)
 	c.Name = fmt.Sprintf("Uke %d %s", week, c.ID)

@@ -6,14 +6,14 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/kvalv/shoplist/cart"
+	"github.com/kvalv/shoplist/carts"
 	"github.com/kvalv/shoplist/events"
 	"github.com/kvalv/shoplist/recipe"
 	"github.com/starfederation/datastar-go/datastar"
 )
 
 func NewAddItem(
-	repo *cart.SqliteRepository,
+	repo *carts.SqliteRepository,
 	bus *events.Bus,
 	log *slog.Logger,
 ) http.HandlerFunc {

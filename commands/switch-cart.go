@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/kvalv/shoplist/cart"
+	"github.com/kvalv/shoplist/carts"
 	"github.com/kvalv/shoplist/events"
 	"github.com/starfederation/datastar-go/datastar"
 )
@@ -23,7 +23,7 @@ func SignalsFromRequest(r *http.Request) *signals {
 }
 
 func NewSwitchCart(
-	repo *cart.SqliteRepository,
+	repo *carts.SqliteRepository,
 	bus *events.Bus,
 	log *slog.Logger,
 ) http.HandlerFunc {

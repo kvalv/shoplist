@@ -3,8 +3,18 @@ CREATE TABLE IF NOT EXISTS carts(
     id text PRIMARY KEY,
     name text NOT NULL DEFAULT '',
     created_at DATETIME NOT NULL,
+    created_by text,
     target_store integer NOT NULL,
-    inactive boolean NOT NULL DEFAULT FALSE
+    inactive boolean NOT NULL DEFAULT FALSE,
+    FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS collaborators(
+    user_id text NOT NULL,
+    cart_id text NOT NULL,
+    created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (cart_id) REFERENCES carts(user_id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS items(
@@ -41,6 +51,7 @@ CREATE TABLE IF NOT EXISTS cron_jobs(
     executed_at timestamp
 );
 
+-- User tables
 CREATE TABLE IF NOT EXISTS users(
     user_id text PRIMARY KEY,
     name text NOT NULL,

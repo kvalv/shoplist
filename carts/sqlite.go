@@ -1,4 +1,4 @@
-package cart
+package carts
 
 import (
 	"database/sql"
@@ -16,16 +16,11 @@ func NewRepository(db *sql.DB) (*SqliteRepository, error) {
 	return &SqliteRepository{db: db}, nil
 }
 
-func (r *SqliteRepository) New() (*Cart, error) {
-	cart := &Cart{
+func New() *Cart {
+	return &Cart{
 		ID:        gonanoid.Must(8),
 		CreatedAt: time.Now(),
 	}
-	_, err := r.db.Exec(
-		`INSERT INTO carts (id, name, created_at, target_store, inactive) VALUES (?, ?, ?, ?, ?)`,
-		cart.ID, cart.Name, cart.CreatedAt, cart.TargetStore, cart.Inactive,
-	)
-	return cart, err
 }
 
 func (r *SqliteRepository) Save(cart *Cart) error {

@@ -1,4 +1,4 @@
-package cart
+package carts
 
 import (
 	"testing"
@@ -10,9 +10,9 @@ func TestSqliteBasic(t *testing.T) {
 	repo := NewMock()
 
 	// Create a cart
-	cart, err := repo.New()
-	if err != nil {
-		t.Fatalf("New() error: %v", err)
+	cart := New()
+	if err := repo.Save(New()); err != nil {
+		t.Fatalf("Failed to save cart: %s", err)
 	}
 	t.Logf("Created cart: %+v", cart)
 

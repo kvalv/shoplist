@@ -63,6 +63,10 @@ func RegisterUsers(
 			for rows.Next() {
 				n++
 			}
+			if n > 0 {
+				next.ServeHTTP(w, r)
+				return
+			}
 
 			if _, err := db.Exec("insert into users(user_id, name, email, picture) values (?, ?, ?, ?)",
 				claims.UserID,

@@ -1,12 +1,12 @@
 package views
 
 import (
-	"github.com/kvalv/shoplist/cart"
+	"github.com/kvalv/shoplist/carts"
 	"fmt"
 	"github.com/kvalv/shoplist/stores"
 )
 
-func itemText(item *cart.Item) string {
+func itemText(item *carts.Item) string {
 	if sel := item.Clas.Selected(); sel != nil {
 		loc := "location unknown"
 		if len(sel.Locations) > 0 {
@@ -17,7 +17,7 @@ func itemText(item *cart.Item) string {
 	return item.Text
 }
 
-templ cartList(items []*cart.Item) {
+templ cartList(items []*carts.Item) {
 	<ul>
 		for _, item := range items {
 			<li>
@@ -34,7 +34,7 @@ templ cartList(items []*cart.Item) {
 	</ul>
 }
 
-templ Page(current *cart.Cart, choices []*cart.Cart) {
+templ Page(current *carts.Cart, choices []*carts.Cart) {
 	if current == nil {
 		return "current is nil"
 	}
@@ -76,7 +76,7 @@ templ Page(current *cart.Cart, choices []*cart.Cart) {
 	</html>
 }
 
-templ CartSelect(active *cart.Cart, choices []*cart.Cart) {
+templ CartSelect(active *carts.Cart, choices []*carts.Cart) {
 	<select
 		name="cart-id"
 		data-on:change="@post('/switch-cart')"
