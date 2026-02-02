@@ -41,3 +41,11 @@ CREATE TABLE IF NOT EXISTS cron_jobs(
     executed_at timestamp
 );
 
+CREATE TABLE IF NOT EXISTS users(
+    user_id text PRIMARY KEY,
+    name text NOT NULL,
+    email text NOT NULL,
+    picture text NULL,
+    created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+

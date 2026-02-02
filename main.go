@@ -46,19 +46,6 @@ func main() {
 }
 
 func run(ctx context.Context, log *slog.Logger) error {
-	r := chi.NewRouter()
-	server := http.Server{
-		Addr:    ":3001",
-		Handler: r,
-	}
-	go func() {
-		<-ctx.Done()
-		log.Info("shutting down server...")
-		if err := server.Shutdown(context.Background()); err != nil {
-			log.Error("failed to shutdown server", "error", err)
-		}
-	}()
-
 	db, err := sql.Open("sqlite", "file:shop.db")
 	if err != nil {
 		log.Error("failed to open db", "error", err)
@@ -94,7 +81,7 @@ func run(ctx context.Context, log *slog.Logger) error {
 	// any client receives a new render.
 	bus := events.NewBus(logger("bus"))
 
-	cart.SetupMockData(repo)
+	cart.SetupMockData(db, repo)
 
 	go RunBackgroundWorker(
 		ctx,
@@ -102,6 +89,26 @@ func run(ctx context.Context, log *slog.Logger) error {
 		bus,
 		logger("worker"),
 	)
+
+	r := chi.NewRouter().With(
+		auth.NewMockAuth(&auth.Claims{
+			UserID: "userID123",
+			Name:   "Markus Berg Lavby",
+			Email:  "kongenbefaler@email.com",
+		}),
+		auth.RegisterUsers(db, logger("auth"), bus),
+	)
+	server := http.Server{
+		Addr:    ":3001",
+		Handler: r,
+	}
+	go func() {
+		<-ctx.Done()
+		log.Info("shutting down server...")
+		if err := server.Shutdown(context.Background()); err != nil {
+			log.Error("failed to shutdown server", "error", err)
+		}
+	}()
 
 	// Initial render
 	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -143,7 +150,6 @@ func run(ctx context.Context, log *slog.Logger) error {
 		}
 	})
 
-	r.Use(auth.Middleware())
 	r.HandleFunc("/add", commands.NewAddItem(repo, bus, log))
 	r.HandleFunc("/check", commands.NewCheckItem(repo, bus, log))
 	r.HandleFunc("/set-store", commands.NewSetStore(repo, bus, log))
@@ -173,7 +179,7 @@ func logger(prefix string) *slog.Logger {
 }
 
 func migrate(db *sql.DB) error {
-	for _, stmt := range strings.Split(migrationSQL, ";") {
+	for stmt := range strings.SplitSeq(migrationSQL, ";") {
 		stmt = strings.TrimSpace(stmt)
 		if stmt == "" {
 			continue

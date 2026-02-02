@@ -29,6 +29,16 @@ func RunBackgroundWorker(
 			return
 		case ev := <-sub.Ch:
 			switch ev := ev.(type) {
+			case events.UserRegistered:
+				log.Info("User registered", "userID", ev.UserID)
+				// cart, err := repo.New()
+				// if err != nil {
+				// 	log.Error("Failed to create cart", "error", err)
+				// 	continue
+				// }
+				// TODO: collaborator
+				// ...
+
 			case events.CartUpdated:
 				log.Info("Received event", "type", fmt.Sprintf("%T", ev), "event", ev)
 				c, err := repo.Cart(ev.CartID)

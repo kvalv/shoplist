@@ -12,7 +12,12 @@ type (
 	CartSwitched struct {
 		CartID string
 	}
+
+	UserRegistered struct {
+		UserID string
+	}
 )
 
-func (CartUpdated) IsEvent()  {}
-func (CartSwitched) IsEvent() {}
+func (CartUpdated) IsEvent()    {}
+func (CartSwitched) IsEvent()   {}
+func (UserRegistered) IsEvent() {}
