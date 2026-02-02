@@ -13,54 +13,7 @@ type SqliteRepository struct {
 }
 
 func NewRepository(db *sql.DB) (*SqliteRepository, error) {
-	repo := &SqliteRepository{db: db}
-	if err := repo.Migrate(); err != nil {
-		return nil, err
-	}
-	return repo, nil
-}
-
-func (r *SqliteRepository) Migrate() error {
-	stmts := []string{
-		`create table if not exists carts (
-			id text primary key,
-			name text not null default '',
-			created_at datetime not null,
-			target_store integer not null,
-			inactive boolean not null default false
-		)`,
-		`create table if not exists items (
-			id text primary key,
-			cart_id text not null references carts(id) on delete cascade,
-			text text not null,
-			checked boolean not null,
-			created_at datetime not null,
-			updated_at datetime,
-			clas_chosen integer,
-			unique(cart_id, text)
-		)`,
-		`create table if not exists clas_candidates (
-			item_id text not null references items(id) on delete cascade,
-			idx integer not null,
-			gtm_id text not null,
-			name text not null,
-			price real not null,
-			url text not null,
-			picture text not null,
-			reviews integer not null,
-			stock integer not null,
-			area text,
-			shelf text,
-			primary key(item_id, idx)
-		)`,
-	}
-
-	for _, stmt := range stmts {
-		if _, err := r.db.Exec(stmt); err != nil {
-			return err
-		}
-	}
-	return nil
+	return &SqliteRepository{db: db}, nil
 }
 
 func (r *SqliteRepository) New() (*Cart, error) {

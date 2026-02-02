@@ -3,15 +3,18 @@ package main
 import (
 	"context"
 	"database/sql"
+	_ "embed"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 
 	"github.com/a-h/templ"
 	"github.com/go-chi/chi/v5"
+	"github.com/kvalv/shoplist/auth"
 	"github.com/kvalv/shoplist/cart"
 	"github.com/kvalv/shoplist/commands"
 	"github.com/kvalv/shoplist/cron"
@@ -20,6 +23,9 @@ import (
 	"github.com/starfederation/datastar-go/datastar"
 	_ "modernc.org/sqlite"
 )
+
+//go:embed migration.sql
+var migrationSQL string
 
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -59,6 +65,10 @@ func run(ctx context.Context, log *slog.Logger) error {
 		os.Exit(1)
 	}
 	defer db.Close()
+
+	if err := migrate(db); err != nil {
+		return fmt.Errorf("failed to run migrations: %w", err)
+	}
 
 	repo, err := cart.NewRepository(db)
 	if err != nil {
@@ -133,6 +143,7 @@ func run(ctx context.Context, log *slog.Logger) error {
 		}
 	})
 
+	r.Use(auth.Middleware())
 	r.HandleFunc("/add", commands.NewAddItem(repo, bus, log))
 	r.HandleFunc("/check", commands.NewCheckItem(repo, bus, log))
 	r.HandleFunc("/set-store", commands.NewSetStore(repo, bus, log))
@@ -159,4 +170,17 @@ func logger(prefix string) *slog.Logger {
 			return a
 		},
 	})).With("srv", prefix)
+}
+
+func migrate(db *sql.DB) error {
+	for _, stmt := range strings.Split(migrationSQL, ";") {
+		stmt = strings.TrimSpace(stmt)
+		if stmt == "" {
+			continue
+		}
+		if _, err := db.Exec(stmt); err != nil {
+			return fmt.Errorf("failed to execute %q: %w", stmt[:min(50, len(stmt))], err)
+		}
+	}
+	return nil
 }

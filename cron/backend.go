@@ -31,11 +31,7 @@ type sqlite struct {
 }
 
 func BackendSqlite(db *sql.DB) Backend {
-	s := &sqlite{db: db}
-	if err := s.migrate(); err != nil {
-		panic("backend; failed to migrate: " + err.Error())
-	}
-	return s
+	return &sqlite{db: db}
 }
 
 // Register implements [Backend].
@@ -101,25 +97,6 @@ func (s *sqlite) JobSucceeded(name string) error {
 	`, name, time.Now())
 	if err != nil {
 		return fmt.Errorf("sql: %w", err)
-	}
-	return nil
-}
-
-func (s *sqlite) migrate() error {
-	stmts := []string{
-		`
-		create table if not exists cron_jobs(
-			name text primary key,
-			attempt int not null default 0,
-			last_error text,
-			executed_at timestamp
-		);
-		`,
-	}
-	for _, stmt := range stmts {
-		if _, err := s.db.Exec(stmt); err != nil {
-			return err
-		}
 	}
 	return nil
 }
