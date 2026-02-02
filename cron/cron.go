@@ -77,7 +77,7 @@ type Cron struct {
 	pollInterval time.Duration
 }
 
-func (c *Cron) Job(
+func (c *Cron) Register(
 	name string,
 	pattern string,
 	handler handler,
@@ -101,14 +101,16 @@ func (c *Cron) Job(
 }
 
 // Registers a new job. If the registration fails due to invalid pattern or name, it panics.
-func (c *Cron) Must(
+// Returns itself for chaining
+func (c *Cron) MustRegister(
 	name string,
 	pattern string,
 	handler handler,
-) {
-	if err := c.Job(name, pattern, handler); err != nil {
+) *Cron {
+	if err := c.Register(name, pattern, handler); err != nil {
 		panic("cron: failed to register job: " + err.Error())
 	}
+	return c
 }
 
 type job struct {

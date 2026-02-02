@@ -6,7 +6,6 @@ import (
 	"log/slog"
 
 	"github.com/kvalv/shoplist/cart"
-	"github.com/kvalv/shoplist/cron"
 	"github.com/kvalv/shoplist/events"
 	"github.com/kvalv/shoplist/stores"
 	"github.com/kvalv/shoplist/stores/clasohlson"
@@ -16,30 +15,12 @@ func RunBackgroundWorker(
 	ctx context.Context,
 	repo *cart.SqliteRepository,
 	bus *events.Bus,
-	cron *cron.Cron,
 	log *slog.Logger,
 ) {
 	sub := bus.Subscribe()
 	log.Info("Started")
 
 	client := clasohlson.NewClient(clasohlson.CCVest)
-
-	cron.Must("test hvert 1. minutt", "* * * * *", func(ctx context.Context, attempt int) error {
-		log.Info("I got triggered yo")
-		return nil
-	})
-
-	cron.Must("Create new cart on the start of next week", "0 0 * * mon", func(ctx context.Context, attempt int) error {
-		cart, err := repo.New()
-		if err != nil {
-			return fmt.Errorf("failed to create new cart: %w", err)
-		}
-		log.Info("Created new cart", "cartID", cart.ID)
-		return nil
-	})
-
-	go cron.Run()
-	defer cron.Stop()
 
 	for {
 		select {

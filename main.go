@@ -24,16 +24,27 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	log := logger("main")
 
-	server := http.Server{
-		Addr: ":3001",
-	}
-
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, os.Interrupt)
 	go func() {
 		<-ch
 		log.Info("received interrupt, shutting down...")
 		cancel()
+	}()
+
+	if err := run(ctx, log); err != nil {
+		log.Error(fmt.Sprintf("application error: %v", err))
+		os.Exit(1)
+	}
+}
+
+func run(ctx context.Context, log *slog.Logger) error {
+	server := http.Server{
+		Addr: ":3001",
+	}
+	go func() {
+		<-ctx.Done()
+		log.Info("shutting down server...")
 		if err := server.Shutdown(context.Background()); err != nil {
 			log.Error("failed to shutdown server", "error", err)
 		}
@@ -48,13 +59,22 @@ func main() {
 
 	repo, err := cart.NewRepository(db)
 	if err != nil {
-		log.Error("failed to create repo", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to create cart repository: %w", err)
 	}
 
-	cron := cron.New(ctx, cron.BackendSqlite(db)).
+	cron := cron.
+		New(ctx, cron.BackendSqlite(db)).
 		WithLogger(logger("cron")).
-		WithPollInterval(time.Minute * 30)
+		WithPollInterval(time.Minute*30).
+		MustRegister("Create new cart on the start of next week", "0 0 * * mon", func(ctx context.Context, attempt int) error {
+			cart, err := repo.New()
+			if err != nil {
+				return fmt.Errorf("failed to create new cart: %w", err)
+			}
+			log.Info("Created new cart", "cartID", cart.ID)
+			return nil
+		})
+	go cron.Run()
 	defer cron.Stop()
 
 	// Whenever a cart (item) is updated, we'll broadcast the event, so
@@ -67,7 +87,6 @@ func main() {
 		ctx,
 		repo,
 		bus,
-		cron,
 		logger("worker"),
 	)
 
@@ -117,10 +136,11 @@ func main() {
 	http.HandleFunc("/switch-cart", commands.NewSwitchCart(repo, bus, log))
 
 	log.Info("starting server", "addr", server.Addr)
-	if err := server.ListenAndServe(); err != nil {
+	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Error("server error", "error", err)
 		os.Exit(1)
 	}
+	return nil
 }
 
 func logger(prefix string) *slog.Logger {

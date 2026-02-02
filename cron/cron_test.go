@@ -134,7 +134,7 @@ func TestCron(t *testing.T) {
 		}
 
 		// Every hour
-		if err := cron.Job("foo", "0 * * * *", increment); err != nil {
+		if err := cron.Register("foo", "0 * * * *", increment); err != nil {
 			t.Fatalf("failed to register job: %v", err)
 		}
 		go cron.Run()
