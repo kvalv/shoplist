@@ -1,4 +1,4 @@
-package main
+package recipe
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 	"github.com/kvalv/shoplist/llm"
 )
 
-func ParseRecipe(ctx context.Context, url *url.URL) ([]string, error) {
+func Parse(ctx context.Context, url *url.URL) ([]string, error) {
 	log.Printf("parsing recipe from url: %s", url.String())
 	got, err := reciparse.New().ParseRecipe(*url)
 	if err != nil {

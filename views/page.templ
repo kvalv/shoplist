@@ -52,12 +52,12 @@ templ Page(current *cart.Cart, choices []*cart.Cart) {
 				@CartSelect(current, choices)
 			</div>
 			<select
-				value={ fmt.Sprintf("\"%d\"", cart.TargetStore) }
+				value={ fmt.Sprintf("\"%d\"", current.TargetStore) }
 				data-bind="store"
 				data-on:change="@post('/set-store')"
 			>
-				<option selected?={ cart.TargetStore == stores.Kiwi } value="0">Kiwi</option>
-				<option value="1" selected?={ cart.TargetStore == stores.ClasOhlson }>Clas Ohlson</option>
+				<option selected?={ current.TargetStore == stores.Kiwi } value="0">Kiwi</option>
+				<option value="1" selected?={ current.TargetStore == stores.ClasOhlson }>Clas Ohlson</option>
 			</select>
 			<form
 				data-on:submit="@post('/add')"
@@ -71,7 +71,7 @@ templ Page(current *cart.Cart, choices []*cart.Cart) {
 				/>
 				<button data-attr:disabled="$text === ''" type="submit">Add</button>
 			</form>
-			@cartList(cart.Items)
+			@cartList(current.Items)
 		</body>
 	</html>
 }

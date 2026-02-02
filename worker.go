@@ -15,7 +15,7 @@ import (
 func RunBackgroundWorker(
 	ctx context.Context,
 	repo *cart.SqliteRepository,
-	bus *events.Bus[events.Event],
+	bus *events.Bus,
 	cron *cron.Cron,
 	log *slog.Logger,
 ) {

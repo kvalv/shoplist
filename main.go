@@ -6,10 +6,8 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"net/url"
 	"os"
 	"os/signal"
-	"strconv"
 	"time"
 
 	"github.com/a-h/templ"
@@ -17,7 +15,6 @@ import (
 	"github.com/kvalv/shoplist/commands"
 	"github.com/kvalv/shoplist/cron"
 	"github.com/kvalv/shoplist/events"
-	"github.com/kvalv/shoplist/stores"
 	"github.com/kvalv/shoplist/views"
 	"github.com/starfederation/datastar-go/datastar"
 	_ "modernc.org/sqlite"
@@ -31,7 +28,7 @@ func main() {
 		Addr: ":3001",
 	}
 
-	ch := make(chan os.Signal)
+	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, os.Interrupt)
 	go func() {
 		<-ch
@@ -114,71 +111,9 @@ func main() {
 		}
 	})
 
-	http.HandleFunc("/add", func(w http.ResponseWriter, r *http.Request) {
-		var signals struct {
-			Text string `json:"text"`
-		}
-		if err := datastar.ReadSignals(r, &signals); err != nil {
-			log.Error("failed to read signals", "error", err)
-		}
-		cart, _ := repo.Latest()
-		log.Info("/add invoked", "text", signals.Text, "cartID", cart.ID)
-
-		event := events.CartUpdated{
-			CartID: cart.ID,
-		}
-		if got, _ := url.ParseRequestURI(signals.Text); got != nil {
-			log.Info("this is a recipe, trying to parse")
-			parts, err := ParseRecipe(context.Background(), got)
-			if err != nil {
-				log.Error("failed to parse recipe", "error", err)
-			}
-			log.Info("parsed recipe", "parts", len(parts))
-			for _, text := range parts {
-				log.Info("adding item from recipe", "text", text)
-				item := cart.Add(text)
-				event.ItemIDs = append(event.ItemIDs, item.ID)
-			}
-		} else {
-			item := cart.Add(signals.Text)
-			event.ItemIDs = append(event.ItemIDs, item.ID)
-		}
-		repo.Save(cart)
-		bus.Publish(event)
-		datastar.NewSSE(w, r).PatchSignals([]byte(`{"text": ""}`))
-	})
-
-	http.HandleFunc("/check", func(w http.ResponseWriter, r *http.Request) {
-		ID := r.URL.Query().Get("id")
-		cart, _ := repo.Latest()
-		cart.Get(ID).Toggle()
-		repo.Save(cart)
-
-		bus.Publish(events.CartUpdated{CartID: cart.ID})
-
-		log.Info("tick called")
-	})
-
-	http.HandleFunc("/set-store", func(w http.ResponseWriter, r *http.Request) {
-		cart, _ := repo.Latest()
-		var signals struct {
-			Store string `json:"store"`
-		}
-		if err := datastar.ReadSignals(r, &signals); err != nil {
-			log.Error("failed to read signals", "error", err)
-			return
-		}
-
-		var err error
-		if cart.TargetStore, err = parseStore(signals.Store); err != nil {
-			log.Error("failed to parse", "error", err)
-			return
-		}
-		repo.Save(cart)
-
-		log.Info("/store called", "store", cart.TargetStore)
-		bus.Publish(events.CartUpdated{CartID: cart.ID})
-	})
+	http.HandleFunc("/add", commands.NewAddItem(repo, bus, log))
+	http.HandleFunc("/check", commands.NewCheckItem(repo, bus, log))
+	http.HandleFunc("/set-store", commands.NewSetStore(repo, bus, log))
 	http.HandleFunc("/switch-cart", commands.NewSwitchCart(repo, bus, log))
 
 	log.Info("starting server", "addr", server.Addr)
@@ -186,14 +121,6 @@ func main() {
 		log.Error("server error", "error", err)
 		os.Exit(1)
 	}
-}
-
-func parseStore(s string) (stores.Store, error) {
-	got, err := strconv.ParseInt(s, 10, 64)
-	if err != nil {
-		return 0, err
-	}
-	return stores.Store(got), nil
 }
 
 func logger(prefix string) *slog.Logger {
