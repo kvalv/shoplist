@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/a-h/templ"
+	"github.com/go-chi/chi/v5"
 	"github.com/kvalv/shoplist/cart"
 	"github.com/kvalv/shoplist/commands"
 	"github.com/kvalv/shoplist/cron"
@@ -39,8 +40,10 @@ func main() {
 }
 
 func run(ctx context.Context, log *slog.Logger) error {
+	r := chi.NewRouter()
 	server := http.Server{
-		Addr: ":3001",
+		Addr:    ":3001",
+		Handler: r,
 	}
 	go func() {
 		<-ctx.Done()
@@ -91,17 +94,17 @@ func run(ctx context.Context, log *slog.Logger) error {
 	)
 
 	// Initial render
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		carts, _ := repo.List(5)
 		templ.Handler(views.Page(carts[0], carts)).ServeHTTP(w, r)
 	})
 
-	http.HandleFunc("/static/", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/static/", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "."+r.URL.Path)
 	})
 
 	// Render loop
-	http.HandleFunc("/render", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/render", func(w http.ResponseWriter, r *http.Request) {
 		sse := datastar.NewSSE(w, r)
 
 		sub := bus.Subscribe()
@@ -130,10 +133,10 @@ func run(ctx context.Context, log *slog.Logger) error {
 		}
 	})
 
-	http.HandleFunc("/add", commands.NewAddItem(repo, bus, log))
-	http.HandleFunc("/check", commands.NewCheckItem(repo, bus, log))
-	http.HandleFunc("/set-store", commands.NewSetStore(repo, bus, log))
-	http.HandleFunc("/switch-cart", commands.NewSwitchCart(repo, bus, log))
+	r.HandleFunc("/add", commands.NewAddItem(repo, bus, log))
+	r.HandleFunc("/check", commands.NewCheckItem(repo, bus, log))
+	r.HandleFunc("/set-store", commands.NewSetStore(repo, bus, log))
+	r.HandleFunc("/switch-cart", commands.NewSwitchCart(repo, bus, log))
 
 	log.Info("starting server", "addr", server.Addr)
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
