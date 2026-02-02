@@ -25,9 +25,9 @@ func New() *Cart {
 
 func (r *SqliteRepository) Save(cart *Cart) error {
 	_, err := r.db.Exec(
-		`INSERT INTO carts (id, name, created_at, target_store, inactive) VALUES (?, ?, ?, ?, ?)
+		`INSERT INTO carts (id, name, created_at, created_by, target_store, inactive) VALUES (?, ?, ?, ?, ?, ?)
 		 ON CONFLICT(id) DO UPDATE SET name = excluded.name, target_store = excluded.target_store, inactive = excluded.inactive`,
-		cart.ID, cart.Name, cart.CreatedAt, cart.TargetStore, cart.Inactive,
+		cart.ID, cart.Name, cart.CreatedAt, cart.CreatedBy, cart.TargetStore, cart.Inactive,
 	)
 	if err != nil {
 		return err
@@ -224,4 +224,30 @@ func (r *SqliteRepository) loadClasCandidates(item *Item) error {
 		item.Clas.Candidates = append(item.Clas.Candidates, c)
 	}
 	return nil
+}
+
+func (r *SqliteRepository) Collaborators(cartID string) ([]string, error) {
+	rows, err := r.db.Query(`select user_id from collaborators where cart_id = ?`, cartID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []string
+	for rows.Next() {
+		var userID string
+		if err := rows.Scan(&userID); err != nil {
+			return nil, err
+		}
+		users = append(users, userID)
+	}
+	return users, nil
+}
+
+func (r *SqliteRepository) AddCollaborator(cartID, userID string) error {
+	_, err := r.db.Exec(
+		`INSERT INTO collaborators (cart_id, user_id) VALUES (?, ?) ON CONFLICT DO NOTHING`,
+		cartID, userID,
+	)
+	return err
 }

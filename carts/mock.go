@@ -6,19 +6,23 @@ import (
 	"log"
 	"time"
 
+	"github.com/kvalv/shoplist/migrations"
 	_ "modernc.org/sqlite"
 )
 
-func NewMock() *SqliteRepository {
+func NewMock() (*SqliteRepository, *sql.DB) {
 	db, err := sql.Open("sqlite", ":memory:")
 	if err != nil {
+		panic(err)
+	}
+	if err := migrations.Migrate(db); err != nil {
 		panic(err)
 	}
 	repo, err := NewRepository(db)
 	if err != nil {
 		panic(err)
 	}
-	return repo
+	return repo, db
 }
 
 func SetupMockData(repo *SqliteRepository) {
