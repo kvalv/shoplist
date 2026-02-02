@@ -12,7 +12,7 @@ type Cart struct {
 	Name      string
 	Items     []*Item
 	CreatedAt time.Time
-	CreatedBy string
+	CreatedBy *string
 
 	// Inactive is true when there is at least one item ticked off and the
 	// last tick happened more than 1 day ago. Computed by a background worker.
@@ -23,7 +23,7 @@ type Cart struct {
 }
 
 func (c *Cart) WithCreator(userID string) *Cart {
-	c.CreatedBy = userID
+	c.CreatedBy = &userID
 	return c
 }
 

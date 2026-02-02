@@ -17,6 +17,34 @@ CREATE TABLE IF NOT EXISTS collaborators(
     FOREIGN KEY (cart_id) REFERENCES carts(user_id) ON DELETE CASCADE
 );
 
+-- only when creator exists, it is nullable
+CREATE TRIGGER IF NOT EXISTS ensure_collaborator
+    AFTER INSERT ON carts
+    FOR EACH ROW
+    WHEN NEW.created_by IS NOT NULL
+BEGIN
+    INSERT INTO collaborators(user_id,
+    cart_id)
+VALUES(NEW.created_by,
+NEW.id);
+
+END;
+
+-- CREATE TRIGGER IF NOT EXISTS set_created_by
+--     AFTER INSERT ON collaborators
+--     FOR EACH ROW
+--     WHEN NEW.user_id =(
+--     SELECT
+--         created_by
+--     FROM
+--         carts
+--     WHERE
+--         id = NEW.cart_id)
+-- BEGIN
+--     UPDATE carts SET created_by = NEW.user_id
+-- WHERE
+--     id = NEW.cart_id;
+-- END;
 CREATE TABLE IF NOT EXISTS items(
     id text PRIMARY KEY,
     cart_id text NOT NULL REFERENCES carts(id) ON DELETE CASCADE,

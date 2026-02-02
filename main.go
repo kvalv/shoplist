@@ -3,13 +3,11 @@ package main
 import (
 	"context"
 	"database/sql"
-	_ "embed"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"time"
 
 	"github.com/a-h/templ"
@@ -19,13 +17,11 @@ import (
 	"github.com/kvalv/shoplist/commands"
 	"github.com/kvalv/shoplist/cron"
 	"github.com/kvalv/shoplist/events"
+	"github.com/kvalv/shoplist/migrations"
 	"github.com/kvalv/shoplist/views"
 	"github.com/starfederation/datastar-go/datastar"
 	_ "modernc.org/sqlite"
 )
-
-//go:embed migration.sql
-var migrationSQL string
 
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -53,7 +49,7 @@ func run(ctx context.Context, log *slog.Logger) error {
 	}
 	defer db.Close()
 
-	if err := migrate(db); err != nil {
+	if err := migrations.Migrate(db); err != nil {
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 
@@ -177,17 +173,4 @@ func logger(prefix string) *slog.Logger {
 			return a
 		},
 	})).With("srv", prefix)
-}
-
-func migrate(db *sql.DB) error {
-	for stmt := range strings.SplitSeq(migrationSQL, ";") {
-		stmt = strings.TrimSpace(stmt)
-		if stmt == "" {
-			continue
-		}
-		if _, err := db.Exec(stmt); err != nil {
-			return fmt.Errorf("failed to execute %q: %w", stmt[:min(50, len(stmt))], err)
-		}
-	}
-	return nil
 }
