@@ -46,9 +46,17 @@ templ Page(current *carts.Cart, choices []*carts.Cart) {
 		<body
 			id="body"
 			data-init="@get('/render')"
+			data-signals:current={ q(current.ID) }
 		>
 			<div class="header">
-				<h3>{ current.Name }</h3>
+				<input
+					data-bind:name
+					data-on:blur="@post('/set-name')"
+					value={ current.Name }
+					class="input-like-h3"
+					type="text"
+					aria-label="Cart name"
+				/>
 				@CartSelect(current, choices)
 			</div>
 			<select
@@ -78,9 +86,17 @@ templ Page(current *carts.Cart, choices []*carts.Cart) {
 
 templ CartSelect(active *carts.Cart, choices []*carts.Cart) {
 	<select
+		style="flex-basis: 40%"
 		name="cart-id"
+		data-bind:current
 		data-on:change="@post('/switch-cart')"
 	>
+		<option
+			data-on:select__stop="@post('/new-cart')"
+			value="_new"
+		>
+			<span>New cart</span>
+		</option>
 		for _, choice := range choices {
 			<option
 				selected?={ active != nil && choice.ID == active.ID }
@@ -88,4 +104,15 @@ templ CartSelect(active *carts.Cart, choices []*carts.Cart) {
 			>{ choice.Name }</option>
 		}
 	</select>
+}
+
+// convenience function to quote, so we don't have to do { fmt.Sprintf(...) }
+// all over the place.
+func q(v any) string {
+	switch concr := v.(type) {
+	case string:
+		return fmt.Sprintf("%q", concr)
+	default:
+		panic(fmt.Sprintf("quote: not implemented for %T", v))
+	}
 }

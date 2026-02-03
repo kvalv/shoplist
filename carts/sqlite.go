@@ -244,10 +244,14 @@ func (r *SqliteRepository) Collaborators(cartID string) ([]string, error) {
 	return users, nil
 }
 
-func (r *SqliteRepository) AddCollaborator(cartID, userID string) error {
-	_, err := r.db.Exec(
-		`INSERT INTO collaborators (cart_id, user_id) VALUES (?, ?) ON CONFLICT DO NOTHING`,
-		cartID, userID,
-	)
-	return err
+func (r *SqliteRepository) AddCollaborators(cartID string, userIDs ...string) error {
+	for _, userID := range userIDs {
+		if _, err := r.db.Exec(
+			`INSERT INTO collaborators (cart_id, user_id) VALUES (?, ?) ON CONFLICT DO NOTHING`,
+			cartID, userID,
+		); err != nil {
+			return err
+		}
+	}
+	return nil
 }

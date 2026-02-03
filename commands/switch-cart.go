@@ -3,24 +3,12 @@ package commands
 import (
 	"log/slog"
 	"net/http"
+	"time"
 
+	"github.com/kvalv/shoplist/auth"
 	"github.com/kvalv/shoplist/carts"
 	"github.com/kvalv/shoplist/events"
-	"github.com/starfederation/datastar-go/datastar"
 )
-
-type signals struct {
-	Current string `json:"current"` // current cart ID
-}
-
-// we're just going to panic on error, for simplicity
-func SignalsFromRequest(r *http.Request) *signals {
-	var s signals
-	if err := datastar.ReadSignals(r, s); err != nil {
-		panic("failed to read signals: " + err.Error())
-	}
-	return &s
-}
 
 func NewSwitchCart(
 	repo *carts.SqliteRepository,
@@ -28,11 +16,31 @@ func NewSwitchCart(
 	log *slog.Logger,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		claims := auth.ClaimsFromRequest(r)
 		signals := SignalsFromRequest(r)
 
-		// TODO: something something active cart for a specific user
-		log.Info("switch-cart called", "current", signals.Current)
+		// for the special value '_new', we're actually creating and switching
+		// to the new cart
+		if signals.Current == "_new" {
+			log.Info("would create new ")
 
-		bus.Publish(events.CartSwitched{CartID: signals.Current})
+			name := time.Now().Format("2 January")
+			cart := carts.New().WithName(name).WithCreator(claims.UserID)
+
+			if err := repo.Save(cart); err != nil {
+				log.Error("failed to save cart", "error", err)
+				http.Error(w, "failed to create cart", http.StatusInternalServerError)
+				return
+			}
+			log.Info("new cart created", "cartID", cart.ID, "name", name, "createdBy", claims.UserID)
+			bus.Publish(events.CartCreated{CartID: cart.ID})
+			return
+
+		}
+
+		// TODO: something something active cart for a specific user
+		log.Info("switch-cart called", "new", signals.Current)
+
+		bus.Publish(events.CartSwitched{CartID: signals.Current, UserID: claims.UserID})
 	}
 }

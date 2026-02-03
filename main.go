@@ -63,11 +63,12 @@ func run(ctx context.Context, log *slog.Logger) error {
 		WithLogger(logger("cron")).
 		WithPollInterval(time.Minute*30).
 		MustRegister("Create new cart on the start of next week", "0 0 * * mon", func(ctx context.Context, attempt int) error {
-			// TODO: collaborator...
 			cart := carts.New()
 			if err := repo.Save(cart); err != nil {
 				return fmt.Errorf("failed to create cart: %w", err)
 			}
+			// repo.AddCollaborators(cart.ID, "meg", "deg")
+
 			log.Info("Created new cart", "cartID", cart.ID)
 			return nil
 		})
@@ -114,6 +115,9 @@ func run(ctx context.Context, log *slog.Logger) error {
 	r.HandleFunc("/static/", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "."+r.URL.Path)
 	})
+	r.HandleFunc("/static/styles.css", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./static/styles.css")
+	})
 
 	// Render loop
 	r.HandleFunc("/render", func(w http.ResponseWriter, r *http.Request) {
@@ -147,6 +151,7 @@ func run(ctx context.Context, log *slog.Logger) error {
 
 	r.HandleFunc("/add", commands.NewAddItem(repo, bus, log))
 	r.HandleFunc("/check", commands.NewCheckItem(repo, bus, log))
+	r.HandleFunc("/set-name", commands.NewSetName(repo, bus, log))
 	r.HandleFunc("/set-store", commands.NewSetStore(repo, bus, log))
 	r.HandleFunc("/switch-cart", commands.NewSwitchCart(repo, bus, log))
 

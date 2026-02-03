@@ -9,7 +9,11 @@ type (
 		CartID  string
 		ItemIDs []string
 	}
+	CartCreated struct {
+		CartID string
+	}
 	CartSwitched struct {
+		UserID string
 		CartID string
 	}
 
@@ -19,5 +23,6 @@ type (
 )
 
 func (CartUpdated) IsEvent()    {}
+func (CartCreated) IsEvent()    {}
 func (CartSwitched) IsEvent()   {}
 func (UserRegistered) IsEvent() {}

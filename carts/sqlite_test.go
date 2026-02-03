@@ -58,7 +58,7 @@ func TestCollaborator(t *testing.T) {
 		}
 		expectCollaborator(t, repo, cart.ID, "newuser", false)
 
-		if err := repo.AddCollaborator(cart.ID, "newuser"); err != nil {
+		if err := repo.AddCollaborators(cart.ID, "newuser"); err != nil {
 			t.Fatalf("AddCollaborator() error: %v", err)
 		}
 		expectCollaborator(t, repo, cart.ID, "newuser", true)
