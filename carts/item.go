@@ -13,20 +13,17 @@ type Item struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 
+	UpdatedBy string
+	CreatedBy string
+
 	Clas *ClasSearch
 }
 
-func (i *Item) SetChecked(value ...bool) {
-	if len(value) > 0 {
-		i.Checked = value[0]
-	} else {
-		i.Checked = true
-	}
-	i.UpdatedAt = time.Now()
-}
-func (i *Item) Toggle() {
+func (i *Item) Toggle(toggledBy string) *Item {
 	i.Checked = !i.Checked
 	i.UpdatedAt = time.Now()
+	i.UpdatedBy = toggledBy
+	return i
 }
 
 type ClasSearch struct {

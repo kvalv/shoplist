@@ -32,13 +32,15 @@ func (c *Cart) WithCreator(userID string) *Cart {
 	return c
 }
 
-func (c *Cart) Add(text string) *Item {
+func (c *Cart) Add(text string, userID string) *Item {
 	now := time.Now()
 	item := &Item{
 		ID:        gonanoid.Must(8),
 		Text:      text,
 		CreatedAt: now,
 		UpdatedAt: now,
+		CreatedBy: userID,
+		UpdatedBy: userID,
 	}
 	c.Items = prepend(c.Items, item)
 	return item

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/kvalv/shoplist/auth"
 	"github.com/kvalv/shoplist/carts"
 	"github.com/kvalv/shoplist/events"
 	"github.com/kvalv/shoplist/recipe"
@@ -18,12 +19,9 @@ func NewAddItem(
 	log *slog.Logger,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var signals struct {
-			Text string `json:"text"`
-		}
-		if err := datastar.ReadSignals(r, &signals); err != nil {
-			log.Error("failed to read signals", "error", err)
-		}
+		signals := SignalsFromRequest(r)
+		claims := auth.ClaimsFromRequest(r)
+
 		cart, _ := repo.Latest()
 		log.Info("/add invoked", "text", signals.Text, "cartID", cart.ID)
 
@@ -39,11 +37,11 @@ func NewAddItem(
 			log.Info("parsed recipe", "parts", len(parts))
 			for _, text := range parts {
 				log.Info("adding item from recipe", "text", text)
-				item := cart.Add(text)
+				item := cart.Add(text, claims.UserID)
 				event.ItemIDs = append(event.ItemIDs, item.ID)
 			}
 		} else {
-			item := cart.Add(signals.Text)
+			item := cart.Add(signals.Text, claims.UserID)
 			event.ItemIDs = append(event.ItemIDs, item.ID)
 		}
 		repo.Save(cart)

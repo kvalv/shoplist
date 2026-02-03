@@ -4,7 +4,8 @@ import (
 	"database/sql"
 	"testing"
 
-	"github.com/kvalv/shoplist/stores"
+	"github.com/kvalv/shoplist/migrations"
+	_ "modernc.org/sqlite"
 )
 
 func TestSqliteBasic(t *testing.T) {
@@ -30,6 +31,47 @@ func TestSqliteBasic(t *testing.T) {
 		t.Fatalf("Latest() error: %v", err)
 	}
 	t.Logf("Latest cart: %+v", latest)
+}
+
+func TestAddAndTick(t *testing.T) {
+	repo, _ := NewMock()
+
+	cart := New()
+	item := cart.Add("milk", "alice")
+
+	if err := repo.Save(cart); err != nil {
+		t.Fatalf("failed to add: %v", err)
+	}
+
+	item.Toggle("bob")
+
+	if err := repo.Save(cart); err != nil {
+		t.Fatalf("failed to tick: %v", err)
+	}
+
+	expectItem(t, repo, cart.ID, item.ID, func(item *Item) {
+		if !item.Checked {
+			t.Errorf("Expected item to be checked, but it was not")
+		}
+		if item.CreatedBy != "alice" {
+			t.Errorf("Expected item to be created by 'alice', but got '%s'", item.CreatedBy)
+		}
+		if item.UpdatedBy != "bob" {
+			t.Errorf("Expected item to be updated by 'bob', but got '%s'", item.UpdatedBy)
+		}
+	})
+}
+
+func expectItem(t *testing.T, repo *SqliteRepository, cartID string, itemID string, cb func(item *Item)) {
+	cart, err := repo.Cart(cartID)
+	if err != nil {
+		t.Fatalf("Cart() error: %v", err)
+	}
+	item := cart.Get(itemID)
+	if item == nil {
+		t.Fatalf("Item %s not found in cart %s", itemID, cartID)
+	}
+	cb(item)
 }
 
 func TestCollaborator(t *testing.T) {
@@ -63,25 +105,6 @@ func TestCollaborator(t *testing.T) {
 		}
 		expectCollaborator(t, repo, cart.ID, "newuser", true)
 	})
-}
-
-func TestSetupMockData(t *testing.T) {
-	repo, _ := NewMock()
-	SetupMockData(repo)
-
-	latest, err := repo.Latest()
-	if err != nil {
-		t.Fatalf("Latest() error: %v", err)
-	}
-
-	if latest.TargetStore != stores.Kiwi {
-		t.Errorf("TargetStore = %v, want %v", latest.TargetStore, stores.Kiwi)
-	}
-
-	t.Logf("Cart: %+v", latest)
-	for _, item := range latest.Items {
-		t.Logf("  Item: %+v", item)
-	}
 }
 
 func expectCollaborator(t *testing.T, repo *SqliteRepository, cartID string, userID string, exists bool) {
@@ -136,4 +159,38 @@ func query(t *testing.T, db *sql.DB, format string, args ...any) {
 		t.Log("== ROW END == ")
 	}
 	t.Logf("Total rows: %d\n\n", n)
+}
+
+func NewMock(dsn ...string) (*SqliteRepository, *sql.DB) {
+	dsn_ := ":memory:"
+	if len(dsn) > 0 {
+		dsn_ = dsn[0]
+	}
+
+	db, err := sql.Open("sqlite", dsn_)
+	if err != nil {
+		panic(err)
+	}
+	if _, err := db.Exec("PRAGMA foreign_keys = ON"); err != nil {
+		panic(err)
+	}
+	if err := migrations.Migrate(db); err != nil {
+		panic(err)
+	}
+
+	mustWithUsers(db, "alice", "bob")
+
+	repo, err := NewRepository(db)
+	if err != nil {
+		panic(err)
+	}
+	return repo, db
+}
+
+func mustWithUsers(db *sql.DB, userIDs ...string) {
+	for _, userID := range userIDs {
+		if _, err := db.Exec(`INSERT INTO users (user_id, name, email) VALUES (?, ?, ?) ON CONFLICT DO NOTHING`, userID, userID, userID+"@example.com"); err != nil {
+			panic(err)
+		}
+	}
 }

@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS collaborators(
     cart_id text NOT NULL,
     created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-    FOREIGN KEY (cart_id) REFERENCES carts(user_id) ON DELETE CASCADE
+    FOREIGN KEY (cart_id) REFERENCES carts(id) ON DELETE CASCADE
 );
 
 -- only when creator exists, it is nullable
@@ -46,14 +46,15 @@ END;
 --     id = NEW.cart_id;
 -- END;
 CREATE TABLE IF NOT EXISTS items(
-    id text PRIMARY KEY,
+    id text PRIMARY KEY UNIQUE,
     cart_id text NOT NULL REFERENCES carts(id) ON DELETE CASCADE,
     text text NOT NULL,
     checked boolean NOT NULL,
     created_at DATETIME NOT NULL,
+    created_by text REFERENCES users(user_id) ON DELETE SET NULL,
+    updated_by text REFERENCES users(user_id) ON DELETE SET NULL,
     updated_at DATETIME,
-    clas_chosen integer,
-    UNIQUE (cart_id, text)
+    clas_chosen integer
 );
 
 CREATE TABLE IF NOT EXISTS clas_candidates(
@@ -68,7 +69,8 @@ CREATE TABLE IF NOT EXISTS clas_candidates(
     stock integer NOT NULL,
     area text,
     shelf text,
-    PRIMARY KEY (item_id, idx)
+    PRIMARY KEY (item_id, idx),
+    UNIQUE (item_id, idx)
 );
 
 -- Cron tables
@@ -85,6 +87,8 @@ CREATE TABLE IF NOT EXISTS users(
     name text NOT NULL,
     email text NOT NULL,
     picture text NULL,
+    active_cart text NULL REFERENCES carts(id) ON DELETE SET NULL,
+    last_actiom timestamp,
     created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

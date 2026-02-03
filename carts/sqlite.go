@@ -2,6 +2,7 @@ package carts
 
 import (
 	"database/sql"
+	"fmt"
 	"time"
 
 	"github.com/kvalv/shoplist/stores/clasohlson"
@@ -29,13 +30,14 @@ func (r *SqliteRepository) Save(cart *Cart) error {
 		 ON CONFLICT(id) DO UPDATE SET name = excluded.name, target_store = excluded.target_store, inactive = excluded.inactive`,
 		cart.ID, cart.Name, cart.CreatedAt, cart.CreatedBy, cart.TargetStore, cart.Inactive,
 	)
+
 	if err != nil {
-		return err
+		return fmt.Errorf("save: %w", err)
 	}
 
 	for _, item := range cart.Items {
 		if err := r.saveItem(cart.ID, item); err != nil {
-			return err
+			return fmt.Errorf("items.save: %w", err)
 		}
 	}
 	return nil
@@ -53,56 +55,17 @@ func (r *SqliteRepository) saveItem(cartID string, item *Item) error {
 		chosen = item.Clas.Chosen
 	}
 	_, err = tx.Exec(
-		`INSERT INTO items (id, cart_id, text, checked, created_at, updated_at, clas_chosen) VALUES (?, ?, ?, ?, ?, ?, ?)
-		 ON CONFLICT(id) DO UPDATE SET checked = excluded.checked, updated_at = excluded.updated_at, clas_chosen = excluded.clas_chosen`,
-		item.ID, cartID, item.Text, item.Checked, item.CreatedAt, item.UpdatedAt, chosen,
+		`INSERT INTO items (id, cart_id, text, checked, created_at, updated_at, created_by, updated_by, clas_chosen) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		 ON CONFLICT(id) DO UPDATE SET checked = excluded.checked, updated_at = excluded.updated_at, updated_by = excluded.updated_by, clas_chosen = excluded.clas_chosen`,
+		item.ID, cartID, item.Text, item.Checked, item.CreatedAt, item.UpdatedAt, item.CreatedBy, item.UpdatedBy, chosen,
 	)
+
 	if err != nil {
-		return err
+		return fmt.Errorf("saveItem: %w", err)
 	}
 
 	if item.Clas != nil && len(item.Clas.Candidates) > 0 {
 		tx.Exec(`DELETE FROM clas_candidates WHERE item_id = ?`, item.ID)
-		for i, c := range item.Clas.Candidates {
-			var area, shelf *string
-			if len(c.Locations) > 0 {
-				area = &c.Locations[0].Area
-				shelf = &c.Locations[0].Shelf
-			}
-			_, err := tx.Exec(
-				`INSERT INTO clas_candidates (item_id, idx, gtm_id, name, price, url, picture, reviews, stock, area, shelf)
-				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-				item.ID, i, c.ID, c.Name, c.Price, c.URL, c.Picture, c.Reviews, c.Stock, area, shelf,
-			)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return tx.Commit()
-}
-
-func (r *SqliteRepository) Update(item *Item) error {
-	tx, err := r.db.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	var chosen *int
-	if item.Clas != nil {
-		chosen = item.Clas.Chosen
-	}
-	_, err = tx.Exec(
-		`UPDATE items SET text = ?, checked = ?, updated_at = ?, clas_chosen = ? WHERE id = ?`,
-		item.Text, item.Checked, item.UpdatedAt, chosen, item.ID,
-	)
-	if err != nil {
-		return err
-	}
-
-	tx.Exec(`DELETE FROM clas_candidates WHERE item_id = ?`, item.ID)
-	if item.Clas != nil {
 		for i, c := range item.Clas.Candidates {
 			var area, shelf *string
 			if len(c.Locations) > 0 {
@@ -167,7 +130,7 @@ func (r *SqliteRepository) Cart(ID string) (*Cart, error) {
 }
 
 func (r *SqliteRepository) loadCartItems(cart *Cart) (*Cart, error) {
-	rows, err := r.db.Query(`SELECT id, text, checked, created_at, updated_at, clas_chosen FROM items WHERE cart_id = ? ORDER BY checked ASC, updated_at DESC`, cart.ID)
+	rows, err := r.db.Query(`SELECT id, text, checked, created_at, updated_at, clas_chosen, created_by, updated_by FROM items WHERE cart_id = ? ORDER BY checked ASC, updated_at DESC`, cart.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -177,7 +140,7 @@ func (r *SqliteRepository) loadCartItems(cart *Cart) (*Cart, error) {
 		item := &Item{}
 		var chosen *int
 		var updatedAt *time.Time
-		if err := rows.Scan(&item.ID, &item.Text, &item.Checked, &item.CreatedAt, &updatedAt, &chosen); err != nil {
+		if err := rows.Scan(&item.ID, &item.Text, &item.Checked, &item.CreatedAt, &updatedAt, &chosen, &item.CreatedBy, &item.UpdatedBy); err != nil {
 			return nil, err
 		}
 		if updatedAt != nil {
