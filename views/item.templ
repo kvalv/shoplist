@@ -31,12 +31,12 @@ templ ItemPlanClas(item *carts.Item) {
 			if item.Clas != nil {
 				// Renders a list of suggesitons
 				<ul class="flex-col gap-1 pl-2 ">
-					for i, el := range item.Clas.Candidates {
+					for _, el := range item.Clas.Candidates {
 						<li
-							data-on:click={ f("@post('/select-clas-item?id=%s&index=%d')", item.ID, i) }
+							data-on:click={ f("@post('/select-clas-item?id=%s&clasId=%s')", item.ID, el.ID) }
 							class={
 								"flex gap-2 border rounded-sm p-1 ",
-								templ.KV("border-success", item.Clas.Chosen != nil && *item.Clas.Chosen == i),
+								templ.KV("border-success", item.Clas.Chosen == el.ID),
 							}
 						>
 							<img

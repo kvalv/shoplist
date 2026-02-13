@@ -78,10 +78,8 @@ func RunBackgroundWorker(
 							log.Debug("Candidate URLs", "url", cl.URL, "picture", cl.Picture)
 						}
 
-						chosen := 0
 						item.Clas = &carts.ClasSearch{
 							Candidates: results,
-							Chosen:     &chosen,
 						}
 						repo.Save(c)
 						bus.Publish(events.CartUpdated{

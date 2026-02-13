@@ -95,16 +95,16 @@ func TestSelectClasOhlsonItem(t *testing.T) {
 
 	repo.MustSave(cart)
 
-	if err := repo.SelectClasOhlsonItem(item.ID, 0); err != nil {
-		t.Fatalf("SelectClasOhlsonItem(0) error: %v", err)
+	if err := repo.SelectClasOhlsonItem(item.ID, "a"); err != nil {
+		t.Fatalf("SelectClasOhlsonItem('a') error: %v", err)
 	}
 
-	if err := repo.SelectClasOhlsonItem(item.ID, 1); err != nil {
-		t.Fatalf("SelectClasOhlsonItem(1) error: %v", err)
+	if err := repo.SelectClasOhlsonItem(item.ID, "b"); err != nil {
+		t.Fatalf("SelectClasOhlsonItem('b') error: %v", err)
 	}
 
-	if err := repo.SelectClasOhlsonItem(item.ID, 2); err == nil {
-		t.Fatalf("Expected error for out-of-bounds index 2, but got none")
+	if err := repo.SelectClasOhlsonItem(item.ID, "nonexistent"); err == nil {
+		t.Fatalf("Expected error for nonexistent clas ID, but got none")
 	}
 
 }

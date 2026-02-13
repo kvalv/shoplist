@@ -51,9 +51,9 @@ func (r *SqliteRepository) saveItem(cartID string, item *Item) error {
 	}
 	defer tx.Rollback()
 
-	var chosen *int
-	if item.Clas != nil {
-		chosen = item.Clas.Chosen
+	var chosen *string
+	if item.Clas != nil && item.Clas.Chosen != "" {
+		chosen = &item.Clas.Chosen
 	}
 	_, err = tx.Exec(
 		`INSERT INTO items (id, cart_id, text, checked, created_at, updated_at, created_by, updated_by, clas_chosen) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -74,9 +74,9 @@ func (r *SqliteRepository) saveItem(cartID string, item *Item) error {
 				shelf = &c.Locations[0].Shelf
 			}
 			_, err := tx.Exec(
-				`INSERT INTO clas_candidates (item_id, idx, name, price, url, picture, stock, area, shelf)
-				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-				item.ID, i, c.Name, c.Price, c.URL, c.Picture, c.Stock, area, shelf,
+				`INSERT INTO clas_candidates (item_id, idx, clas_id, name, price, url, picture, stock, area, shelf)
+				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+				item.ID, i, c.ID, c.Name, c.Price, c.URL, c.Picture, c.Stock, area, shelf,
 			)
 			if err != nil {
 				return err
@@ -124,7 +124,7 @@ func (r *SqliteRepository) loadCartItems(cart *Cart) (*Cart, error) {
 
 	for _, item := range cart.Items {
 		if item.ClasChosen != nil {
-			item.Clas = &ClasSearch{Chosen: item.ClasChosen}
+			item.Clas = &ClasSearch{Chosen: *item.ClasChosen}
 		}
 		if err := r.loadClasCandidates(item); err != nil {
 			return nil, err
@@ -134,6 +134,7 @@ func (r *SqliteRepository) loadCartItems(cart *Cart) (*Cart, error) {
 }
 
 type clasCandidateRow struct {
+	ClasID  string  `db:"clas_id"`
 	Name    string  `db:"name"`
 	Price   float64 `db:"price"`
 	URL     string  `db:"url"`
@@ -145,12 +146,13 @@ type clasCandidateRow struct {
 
 func (r *SqliteRepository) loadClasCandidates(item *Item) error {
 	var rows []clasCandidateRow
-	if err := many(&rows, r.db, `SELECT name, price, url, picture, stock, area, shelf FROM clas_candidates WHERE item_id = ? ORDER BY idx`, item.ID); err != nil {
+	if err := many(&rows, r.db, `SELECT clas_id, name, price, url, picture, stock, area, shelf FROM clas_candidates WHERE item_id = ? ORDER BY idx`, item.ID); err != nil {
 		return err
 	}
 
 	for _, row := range rows {
 		c := clasohlson.Item{
+			ID:      row.ClasID,
 			Name:    row.Name,
 			Price:   row.Price,
 			URL:     row.URL,
@@ -168,7 +170,7 @@ func (r *SqliteRepository) loadClasCandidates(item *Item) error {
 	return nil
 }
 
-func (r *SqliteRepository) SelectClasOhlsonItem(itemID string, i int) error {
+func (r *SqliteRepository) SelectClasOhlsonItem(itemID string, clasID string) error {
 	tx, err := r.db.Begin()
 	if err != nil {
 		return fmt.Errorf("begin transaction: %w", err)
@@ -179,15 +181,15 @@ func (r *SqliteRepository) SelectClasOhlsonItem(itemID string, i int) error {
 		Count int
 	}
 
-	if err := get(tx, &res, `SELECT count(*) as count FROM clas_candidates WHERE item_id = ?`, itemID); err != nil {
+	if err := get(tx, &res, `SELECT count(*) as count FROM clas_candidates WHERE item_id = ? AND clas_id = ?`, itemID, clasID); err != nil {
 		return fmt.Errorf("query error: %w", err)
 	}
 
-	if res.Count < i+1 {
-		return fmt.Errorf("invalid index %d for item %s with only %d candidates", i, itemID, res.Count)
+	if res.Count == 0 {
+		return fmt.Errorf("clas item %q not found for item %s", clasID, itemID)
 	}
 
-	if _, err := tx.Exec("update items set clas_chosen = ? where id = ?", i, itemID); err != nil {
+	if _, err := tx.Exec("update items set clas_chosen = ? where id = ?", clasID, itemID); err != nil {
 		return fmt.Errorf("update error: %w", err)
 	}
 

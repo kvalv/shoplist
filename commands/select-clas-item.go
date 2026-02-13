@@ -2,7 +2,6 @@ package commands
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/kvalv/shoplist/carts"
 	"github.com/kvalv/shoplist/events"
@@ -17,14 +16,10 @@ func NewSelectClasItem(
 		log := logger.FromRequest(r)
 		signals := SignalsFromRequest(r)
 		ID := r.URL.Query().Get("id")
-		index, err := strconv.Atoi(r.URL.Query().Get("index"))
-		if err != nil {
-			log.Error("invalid index", "error", err)
-			return
-		}
+		clasID := r.URL.Query().Get("clasId")
 
-		log.Info("setClasItem called", "id", ID, "index", index)
-		if err := repo.SelectClasOhlsonItem(ID, index); err != nil {
+		log.Info("setClasItem called", "id", ID, "clasId", clasID)
+		if err := repo.SelectClasOhlsonItem(ID, clasID); err != nil {
 			log.Error("failed to select clas ohlson item", "error", err)
 			return
 		}

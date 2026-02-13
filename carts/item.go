@@ -14,7 +14,7 @@ type Item struct {
 	UpdatedAt  time.Time `db:"updated_at"`
 	UpdatedBy  string    `db:"updated_by"`
 	CreatedBy  string    `db:"created_by"`
-	ClasChosen *int      `db:"clas_chosen"`
+	ClasChosen *string   `db:"clas_chosen"`
 
 	Clas *ClasSearch `db:"-"`
 }
@@ -28,13 +28,18 @@ func (i *Item) Toggle(toggledBy string) *Item {
 
 type ClasSearch struct {
 	Candidates []clasohlson.Item
-	Chosen     *int // index into Candidates
+	Chosen     string // clas item ID, empty when not set
 }
 
 // Selected returns the chosen item, or nil if none selected
 func (c *ClasSearch) Selected() *clasohlson.Item {
-	if c == nil || c.Chosen == nil || *c.Chosen < 0 || *c.Chosen >= len(c.Candidates) {
+	if c == nil || c.Chosen == "" {
 		return nil
 	}
-	return &c.Candidates[*c.Chosen]
+	for i := range c.Candidates {
+		if c.Candidates[i].ID == c.Chosen {
+			return &c.Candidates[i]
+		}
+	}
+	return nil
 }
