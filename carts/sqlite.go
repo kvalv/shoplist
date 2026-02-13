@@ -179,7 +179,7 @@ func (r *SqliteRepository) SelectClasOhlsonItem(itemID string, i int) error {
 		Count int
 	}
 
-	if err := get(tx, &res, `select count(*) as count from items where id = ?`, itemID); err != nil {
+	if err := get(tx, &res, `SELECT count(*) as count FROM clas_candidates WHERE item_id = ?`, itemID); err != nil {
 		return fmt.Errorf("query error: %w", err)
 	}
 

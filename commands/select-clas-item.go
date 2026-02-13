@@ -15,6 +15,7 @@ func NewSelectClasItem(
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log := logger.FromRequest(r)
+		signals := SignalsFromRequest(r)
 		ID := r.URL.Query().Get("id")
 		index, err := strconv.Atoi(r.URL.Query().Get("index"))
 		if err != nil {
@@ -23,6 +24,10 @@ func NewSelectClasItem(
 		}
 
 		log.Info("setClasItem called", "id", ID, "index", index)
-
+		if err := repo.SelectClasOhlsonItem(ID, index); err != nil {
+			log.Error("failed to select clas ohlson item", "error", err)
+			return
+		}
+		bus.Publish(events.CartUpdated{CartID: signals.Current, ItemIDs: []string{ID}})
 	}
 }

@@ -80,17 +80,31 @@ func TestSelectClasOhlsonItem(t *testing.T) {
 				Stock:     1,
 				Locations: []clasohlson.ShelfLocation{},
 			},
+			{
+				ID:        "b",
+				Name:      "Enda en skopose",
+				Price:     100,
+				URL:       "google.com",
+				Picture:   "gogle.com",
+				Reviews:   1,
+				Stock:     5,
+				Locations: []clasohlson.ShelfLocation{},
+			},
 		},
 	}
 
 	repo.MustSave(cart)
 
 	if err := repo.SelectClasOhlsonItem(item.ID, 0); err != nil {
-		t.Fatalf("SelectClasOhlsonItem() error: %v", err)
+		t.Fatalf("SelectClasOhlsonItem(0) error: %v", err)
 	}
 
-	if err := repo.SelectClasOhlsonItem(item.ID, 1); err == nil {
-		t.Fatalf("Expected error when selecting Clas Ohlson item without candidates, but got none")
+	if err := repo.SelectClasOhlsonItem(item.ID, 1); err != nil {
+		t.Fatalf("SelectClasOhlsonItem(1) error: %v", err)
+	}
+
+	if err := repo.SelectClasOhlsonItem(item.ID, 2); err == nil {
+		t.Fatalf("Expected error for out-of-bounds index 2, but got none")
 	}
 
 }

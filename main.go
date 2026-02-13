@@ -18,6 +18,7 @@ import (
 	"github.com/kvalv/shoplist/cron"
 	"github.com/kvalv/shoplist/devtools"
 	"github.com/kvalv/shoplist/events"
+	"github.com/kvalv/shoplist/logger"
 	"github.com/kvalv/shoplist/migrations"
 	"github.com/kvalv/shoplist/views"
 	"github.com/lmittmann/tint"
@@ -27,7 +28,8 @@ import (
 
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
-	log := logger("main")
+	log := baseLogger("main")
+	slog.SetDefault(log)
 
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, os.Interrupt)
@@ -62,7 +64,7 @@ func run(ctx context.Context, log *slog.Logger) error {
 
 	cron := cron.
 		New(ctx, cron.BackendSqlite(db)).
-		WithLogger(logger("cron")).
+		WithLogger(baseLogger("cron")).
 		WithPollInterval(time.Minute*30).
 		MustRegister("Create new cart on the start of next week", "0 0 * * mon", func(ctx context.Context, attempt int) error {
 			cart := carts.New()
@@ -79,22 +81,23 @@ func run(ctx context.Context, log *slog.Logger) error {
 
 	// Whenever a cart (item) is updated, we'll broadcast the event, so
 	// any client receives a new render.
-	bus := events.NewBus(logger("bus"))
+	bus := events.NewBus(baseLogger("bus"))
 
 	go RunBackgroundWorker(
 		ctx,
 		repo,
 		bus,
-		logger("worker"),
+		baseLogger("worker"),
 	)
 
 	r := chi.NewRouter().With(
+		logger.Middleware(log),
 		auth.NewMockAuth(&auth.Claims{
 			UserID: "userID123",
 			Name:   "Markus Berg Lavby",
 			Email:  "kongenbefaler@email.com",
 		}),
-		auth.RegisterUsers(db, logger("auth"), bus),
+		auth.RegisterUsers(db, baseLogger("auth"), bus),
 	)
 	server := http.Server{
 		Addr:    ":3001",
@@ -195,7 +198,7 @@ func run(ctx context.Context, log *slog.Logger) error {
 	return nil
 }
 
-func logger(prefix string) *slog.Logger {
+func baseLogger(prefix string) *slog.Logger {
 	return slog.New(tint.NewHandler(os.Stdout, &tint.Options{
 		Level:      slog.LevelInfo,
 		TimeFormat: "15:04:05",

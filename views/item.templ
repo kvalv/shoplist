@@ -34,7 +34,10 @@ templ ItemPlanClas(item *carts.Item) {
 					for i, el := range item.Clas.Candidates {
 						<li
 							data-on:click={ f("@post('/select-clas-item?id=%s&index=%d')", item.ID, i) }
-							class="flex gap-2 border rounded-sm p-1 shadow-sm"
+							class={
+								"flex gap-2 border rounded-sm p-1 ",
+								templ.KV("border-success", item.Clas.Chosen != nil && *item.Clas.Chosen == i),
+							}
 						>
 							<img
 								src={ el.Picture }
