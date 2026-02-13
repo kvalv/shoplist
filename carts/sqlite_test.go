@@ -109,18 +109,6 @@ func TestSelectClasOhlsonItem(t *testing.T) {
 
 }
 
-func expectItem(t *testing.T, repo *TestRepository, cartID string, itemID string, cb func(item *Item)) {
-	cart, err := repo.Cart(cartID)
-	if err != nil {
-		t.Fatalf("Cart() error: %v", err)
-	}
-	item := cart.Get(itemID)
-	if item == nil {
-		t.Fatalf("Item %s not found in cart %s", itemID, cartID)
-	}
-	cb(item)
-}
-
 func TestCollaborator(t *testing.T) {
 	repo := NewTestRepository(t).WithUsers("alice", "bob")
 
@@ -152,6 +140,18 @@ func TestCollaborator(t *testing.T) {
 		}
 		expectCollaborator(t, repo, cart.ID, "bob", true)
 	})
+}
+
+func expectItem(t *testing.T, repo *TestRepository, cartID string, itemID string, cb func(item *Item)) {
+	cart, err := repo.Cart(cartID)
+	if err != nil {
+		t.Fatalf("Cart() error: %v", err)
+	}
+	item := cart.Get(itemID)
+	if item == nil {
+		t.Fatalf("Item %s not found in cart %s", itemID, cartID)
+	}
+	cb(item)
 }
 
 func expectCollaborator(t *testing.T, repo *TestRepository, cartID string, userID string, exists bool) {

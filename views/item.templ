@@ -4,64 +4,78 @@ import "github.com/kvalv/shoplist/carts"
 import "github.com/kvalv/shoplist/stores"
 
 templ CartItem(item *carts.Item, isShopping bool, s stores.Store) {
-	if isShopping {
+	<div class="border rounded-sm shadow-sm p-1">
 		switch s {
 			case stores.ClasOhlson:
-				"shop + clas"
+				@ClasOhlsonItem(item, isShopping)
 			case stores.Kiwi:
-				"shop + kiwi"
+				if isShopping {
+					"shop + kiwi"
+				} else {
+					"kiwi + not shop"
+				}
 		}
-	} else {
-		switch s {
-			case stores.ClasOhlson:
-				@ItemPlanClas(item)
-			case stores.Kiwi:
-				"kiwi + not shop"
-		}
-	}
+	</div>
 }
 
-// Rendered when we're in planning mode, for a clas ohlson item
-templ ItemPlanClas(item *carts.Item) {
-	<div>
-		<details>
-			<summary class="outline">
-				{ item.Text }
-			</summary>
-			if item.Clas != nil {
-				// Renders a list of suggesitons
-				<ul class="flex-col gap-1 pl-2 ">
-					for _, el := range item.Clas.Candidates {
-						<li
-							data-on:click={ f("@post('/select-clas-item?id=%s&clasId=%s')", item.ID, el.ID) }
-							class={
-								"flex gap-2 border rounded-sm p-1 ",
-								templ.KV("border-success", item.Clas.Chosen == el.ID),
-							}
-						>
-							<img
-								src={ el.Picture }
-								alt={ el.Name }
-								class="size-10 rounded-box"
-								width="32"
-								height="32"
-								style="border-radius: 4px; object-fit: cover;"
-							/>
-							<div class="flex-col gap-half">
-								{ el.Name }
-								<div class="text-xs flex gap-1">
-									@Price(el.Price)
-									@Availability(el.Stock)
-								</div>
-							</div>
-						</li>
-					}
-				</ul>
+templ ClasOhlsonItem(item *carts.Item, isShopping bool) {
+	<details>
+		<summary class="outline">
+			if selected := item.Clas.Selected(); selected != nil {
+				<div class="flex gap-2">
+					<img
+						src={ selected.Picture }
+						alt={ selected.Name }
+						class="img-thumb-lg"
+					/>
+					<div class="flex-col gap-half">
+						{ selected.Name }
+						<div class="text-xs flex gap-1">
+							@Price(selected.Price)
+							@Availability(selected.Stock)
+						</div>
+					</div>
+				</div>
 			} else {
-				<span>No suggestions</span>
+				<div class="flex gap-1 items-center">
+					{ item.Text }
+					if item.Clas != nil && len(item.Clas.Candidates) > 0 {
+						<span class="text-warning">
+							@IconWarning()
+						</span>
+					}
+				</div>
 			}
-		</details>
-	</div>
+		</summary>
+		if item.Clas != nil {
+			<ul class="flex-col gap-1 pl-2 ">
+				for _, el := range item.Clas.Candidates {
+					<li
+						data-on:click={ f("@post('/select-clas-item?id=%s&clasId=%s')", item.ID, el.ID) }
+						class={
+							"flex gap-2 p-1 border-divider",
+							templ.KV("border-success", item.Clas.Chosen == el.ID),
+						}
+					>
+						<img
+							src={ el.Picture }
+							alt={ el.Name }
+							class="img-thumb-lg"
+						/>
+						<div class="flex-col gap-half">
+							{ el.Name }
+							<div class="text-xs flex gap-1">
+								@Price(el.Price)
+								@Availability(el.Stock)
+							</div>
+						</div>
+					</li>
+				}
+			</ul>
+		} else {
+			<span>No suggestions</span>
+		}
+	</details>
 }
 
 templ Price(price float64) {

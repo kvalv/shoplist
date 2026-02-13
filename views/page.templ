@@ -18,9 +18,11 @@ func itemText(item *carts.Item) string {
 }
 
 templ cartList(items []*carts.Item) {
-	for _, item := range items {
-		@CartItem(item, false, stores.ClasOhlson)
-	}
+	<div class="flex-col gap-1">
+		for _, item := range items {
+			@CartItem(item, false, stores.ClasOhlson)
+		}
+	</div>
 	if false {
 		<ul>
 			for _, item := range items {
@@ -63,25 +65,25 @@ templ Page(current *carts.Cart, choices []*carts.Cart) {
 			class="container"
 		>
 			<main class="container ">
-				<div>
-					<input
-						data-bind:name
-						data-on:blur="@post('/set-name')"
-						value={ current.Name }
-						class="input"
-						type="text"
-						aria-label="Cart name"
-					/>
+				<div class="flex gap-2">
+					// <input
+					// 	data-bind:name
+					// 	data-on:blur="@post('/set-name')"
+					// 	value={ current.Name }
+					// 	class="input"
+					// 	type="text"
+					// 	aria-label="Cart name"
+					// />
 					@CartSelect(current, choices)
+					<select
+						value={ fmt.Sprintf("\"%d\"", current.TargetStore) }
+						data-bind="store"
+						data-on:change="@post('/set-store')"
+					>
+						<option selected?={ current.TargetStore == stores.Kiwi } value="0">Kiwi</option>
+						<option value="1" selected?={ current.TargetStore == stores.ClasOhlson }>Clas Ohlson</option>
+					</select>
 				</div>
-				<select
-					value={ fmt.Sprintf("\"%d\"", current.TargetStore) }
-					data-bind="store"
-					data-on:change="@post('/set-store')"
-				>
-					<option selected?={ current.TargetStore == stores.Kiwi } value="0">Kiwi</option>
-					<option value="1" selected?={ current.TargetStore == stores.ClasOhlson }>Clas Ohlson</option>
-				</select>
 				<form
 					class="form-add"
 					data-on:submit="@post('/add')"
@@ -106,7 +108,7 @@ templ Page(current *carts.Cart, choices []*carts.Cart) {
 
 templ CartSelect(active *carts.Cart, choices []*carts.Cart) {
 	<select
-		style="flex-basis: 40%"
+		style=""
 		name="cart-id"
 		data-bind:current
 		data-on:change="@post('/switch-cart')"
