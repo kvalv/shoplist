@@ -7,18 +7,13 @@ import (
 )
 
 type Cart struct {
-	ID        string
-	Name      string
-	Items     []*Item
-	CreatedAt time.Time
-	CreatedBy *string
-
-	// Inactive is true when there is at least one item ticked off and the
-	// last tick happened more than 1 day ago. Computed by a background worker.
-	Inactive bool
-
-	// Business logic related to clas ohlson is different than kiwi.
-	TargetStore stores.Store
+	ID          string       `db:"id"`
+	Name        string       `db:"name"`
+	Items       []*Item      `db:"-"`
+	CreatedAt   time.Time    `db:"created_at"`
+	CreatedBy   *string      `db:"created_by"`
+	Inactive    bool         `db:"inactive"`
+	TargetStore stores.Store `db:"target_store"`
 }
 
 func (c *Cart) WithName(name string) *Cart {

@@ -74,9 +74,9 @@ func (r *SqliteRepository) saveItem(cartID string, item *Item) error {
 				shelf = &c.Locations[0].Shelf
 			}
 			_, err := tx.Exec(
-				`INSERT INTO clas_candidates (item_id, idx, gtm_id, name, price, url, picture, reviews, stock, area, shelf)
-				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-				item.ID, i, c.ID, c.Name, c.Price, c.URL, c.Picture, c.Reviews, c.Stock, area, shelf,
+				`INSERT INTO clas_candidates (item_id, idx, name, price, url, picture, stock, area, shelf)
+				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+				item.ID, i, c.Name, c.Price, c.URL, c.Picture, c.Stock, area, shelf,
 			)
 			if err != nil {
 				return err
@@ -87,30 +87,18 @@ func (r *SqliteRepository) saveItem(cartID string, item *Item) error {
 }
 
 func (r *SqliteRepository) Latest() (*Cart, error) {
-	row := r.db.QueryRow(`SELECT id, name, created_at, target_store, inactive FROM carts ORDER BY created_at DESC LIMIT 1`)
-	cart := &Cart{}
-	if err := row.Scan(&cart.ID, &cart.Name, &cart.CreatedAt, &cart.TargetStore, &cart.Inactive); err != nil {
+	var cart Cart
+	if err := get(r.db, &cart, `SELECT id, name, created_at, target_store, inactive FROM carts ORDER BY created_at DESC LIMIT 1`); err != nil {
 		return nil, err
 	}
-	return r.loadCartItems(cart)
+	return r.loadCartItems(&cart)
 }
 
 func (r *SqliteRepository) List(n int) ([]*Cart, error) {
-	rows, err := r.db.Query(`SELECT id, name, created_at, target_store, inactive FROM carts ORDER BY created_at DESC LIMIT ?`, n)
-	if err != nil {
+	var carts []*Cart
+	if err := many(&carts, r.db, `SELECT id, name, created_at, target_store, inactive FROM carts ORDER BY created_at DESC LIMIT ?`, n); err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	var carts []*Cart
-	for rows.Next() {
-		cart := &Cart{}
-		if err := rows.Scan(&cart.ID, &cart.Name, &cart.CreatedAt, &cart.TargetStore, &cart.Inactive); err != nil {
-			return nil, err
-		}
-		carts = append(carts, cart)
-	}
-
 	for i, cart := range carts {
 		cart, err := r.loadCartItems(cart)
 		if err != nil {
@@ -122,40 +110,22 @@ func (r *SqliteRepository) List(n int) ([]*Cart, error) {
 }
 
 func (r *SqliteRepository) Cart(ID string) (*Cart, error) {
-	row := r.db.QueryRow(`SELECT id, name, created_at, target_store, inactive FROM carts WHERE id = ?`, ID)
-	cart := &Cart{}
-	if err := row.Scan(&cart.ID, &cart.Name, &cart.CreatedAt, &cart.TargetStore, &cart.Inactive); err != nil {
+	var cart Cart
+	if err := get(r.db, &cart, `SELECT id, name, created_at, target_store, inactive FROM carts WHERE id = ?`, ID); err != nil {
 		return nil, err
 	}
-	return r.loadCartItems(cart)
+	return r.loadCartItems(&cart)
 }
 
 func (r *SqliteRepository) loadCartItems(cart *Cart) (*Cart, error) {
-	rows, err := r.db.Query(`SELECT id, text, checked, created_at, updated_at, clas_chosen, created_by, updated_by FROM items WHERE cart_id = ? ORDER BY checked ASC, updated_at DESC`, cart.ID)
-	if err != nil {
+	if err := many(&cart.Items, r.db, `SELECT id, text, checked, created_at, updated_at, clas_chosen, created_by, updated_by FROM items WHERE cart_id = ? ORDER BY checked ASC, updated_at DESC`, cart.ID); err != nil {
 		return nil, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		item := &Item{}
-		var chosen *int
-		var updatedAt *time.Time
-		if err := rows.Scan(&item.ID, &item.Text, &item.Checked, &item.CreatedAt, &updatedAt, &chosen, &item.CreatedBy, &item.UpdatedBy); err != nil {
-			return nil, err
-		}
-		if updatedAt != nil {
-			item.UpdatedAt = *updatedAt
-		} else {
-			item.UpdatedAt = item.CreatedAt
-		}
-		if chosen != nil {
-			item.Clas = &ClasSearch{Chosen: chosen}
-		}
-		cart.Items = append(cart.Items, item)
 	}
 
 	for _, item := range cart.Items {
+		if item.ClasChosen != nil {
+			item.Clas = &ClasSearch{Chosen: item.ClasChosen}
+		}
 		if err := r.loadClasCandidates(item); err != nil {
 			return nil, err
 		}
@@ -163,24 +133,32 @@ func (r *SqliteRepository) loadCartItems(cart *Cart) (*Cart, error) {
 	return cart, nil
 }
 
+type clasCandidateRow struct {
+	Name    string  `db:"name"`
+	Price   float64 `db:"price"`
+	URL     string  `db:"url"`
+	Picture string  `db:"picture"`
+	Stock   int     `db:"stock"`
+	Area    *string `db:"area"`
+	Shelf   *string `db:"shelf"`
+}
+
 func (r *SqliteRepository) loadClasCandidates(item *Item) error {
-	rows, err := r.db.Query(
-		`SELECT gtm_id, name, price, url, picture, reviews, stock, area, shelf
-		 FROM clas_candidates WHERE item_id = ? ORDER BY idx`, item.ID,
-	)
-	if err != nil {
+	var rows []clasCandidateRow
+	if err := many(&rows, r.db, `SELECT name, price, url, picture, stock, area, shelf FROM clas_candidates WHERE item_id = ? ORDER BY idx`, item.ID); err != nil {
 		return err
 	}
-	defer rows.Close()
 
-	for rows.Next() {
-		var c clasohlson.Item
-		var area, shelf *string
-		if err := rows.Scan(&c.ID, &c.Name, &c.Price, &c.URL, &c.Picture, &c.Reviews, &c.Stock, &area, &shelf); err != nil {
-			return err
+	for _, row := range rows {
+		c := clasohlson.Item{
+			Name:    row.Name,
+			Price:   row.Price,
+			URL:     row.URL,
+			Picture: row.Picture,
+			Stock:   row.Stock,
 		}
-		if area != nil && shelf != nil {
-			c.Locations = []clasohlson.ShelfLocation{{Area: *area, Shelf: *shelf}}
+		if row.Area != nil && row.Shelf != nil {
+			c.Locations = []clasohlson.ShelfLocation{{Area: *row.Area, Shelf: *row.Shelf}}
 		}
 		if item.Clas == nil {
 			item.Clas = &ClasSearch{}
@@ -191,15 +169,17 @@ func (r *SqliteRepository) loadClasCandidates(item *Item) error {
 }
 
 func (r *SqliteRepository) SelectClasOhlsonItem(itemID string, i int) error {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return fmt.Errorf("begin transaction: %w", err)
+	}
+	defer tx.Rollback()
 
 	var res struct {
 		Count int
 	}
 
-	if err := sqlscan.Get(
-		context.TODO(),
-		r.db,
-		&res, `select count(*) from clas_candidates where item_id = ?`); err != nil {
+	if err := get(tx, &res, `select count(*) as count from items where id = ?`, itemID); err != nil {
 		return fmt.Errorf("query error: %w", err)
 	}
 
@@ -207,24 +187,23 @@ func (r *SqliteRepository) SelectClasOhlsonItem(itemID string, i int) error {
 		return fmt.Errorf("invalid index %d for item %s with only %d candidates", i, itemID, res.Count)
 	}
 
-	panic("TODO")
+	if _, err := tx.Exec("update items set clas_chosen = ? where id = ?", i, itemID); err != nil {
+		return fmt.Errorf("update error: %w", err)
+	}
 
+	return tx.Commit()
 }
 
 func (r *SqliteRepository) Collaborators(cartID string) ([]string, error) {
-	rows, err := r.db.Query(`select user_id from collaborators where cart_id = ?`, cartID)
-	if err != nil {
+	var rows []struct {
+		UserID string `db:"user_id"`
+	}
+	if err := many(&rows, r.db, `SELECT user_id FROM collaborators WHERE cart_id = ?`, cartID); err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	var users []string
-	for rows.Next() {
-		var userID string
-		if err := rows.Scan(&userID); err != nil {
-			return nil, err
-		}
-		users = append(users, userID)
+	users := make([]string, len(rows))
+	for i, row := range rows {
+		users[i] = row.UserID
 	}
 	return users, nil
 }
@@ -237,6 +216,19 @@ func (r *SqliteRepository) AddCollaborators(cartID string, userIDs ...string) er
 		); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func get(db sqlscan.Querier, dest any, query string, args ...any) error {
+	if err := sqlscan.Get(context.TODO(), db, dest, query, args...); err != nil {
+		return fmt.Errorf("query error: %w", err)
+	}
+	return nil
+}
+func many(dest any, db sqlscan.Querier, query string, args ...any) error {
+	if err := sqlscan.Select(context.TODO(), db, dest, query, args...); err != nil {
+		return fmt.Errorf("query error: %w", err)
 	}
 	return nil
 }

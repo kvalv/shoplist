@@ -12,7 +12,6 @@ import (
 
 	"github.com/a-h/templ"
 	"github.com/go-chi/chi/v5"
-	"github.com/lmittmann/tint"
 	"github.com/kvalv/shoplist/auth"
 	"github.com/kvalv/shoplist/carts"
 	"github.com/kvalv/shoplist/commands"
@@ -21,6 +20,7 @@ import (
 	"github.com/kvalv/shoplist/events"
 	"github.com/kvalv/shoplist/migrations"
 	"github.com/kvalv/shoplist/views"
+	"github.com/lmittmann/tint"
 	"github.com/starfederation/datastar-go/datastar"
 	_ "modernc.org/sqlite"
 )
@@ -130,7 +130,7 @@ func run(ctx context.Context, log *slog.Logger) error {
 			// favicon.ico
 			log.Error("failed to fetch cart", "error", err, "id", chi.URLParam(r, "id"))
 			return
-			panic(fmt.Errorf("failed to fetch cart: %w id=%q", err, chi.URLParam(r, "id")))
+			// panic(fmt.Errorf("failed to fetch cart: %w id=%q", err, chi.URLParam(r, "id")))
 		}
 		templ.Handler(views.Page(cart, nil)).ServeHTTP(w, r)
 	})

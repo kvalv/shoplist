@@ -27,12 +27,12 @@ type ShelfLocation struct {
 }
 
 type Item struct {
-	ID        string
+	ID        string // not persisted to DB, but needed for API calls
 	Name      string
 	Price     float64
 	URL       string
 	Picture   string
-	Reviews   int
+	Reviews   int // not persisted to DB, but used for ranking
 	Stock     int
 	Locations []ShelfLocation
 }

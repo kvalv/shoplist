@@ -5,15 +5,16 @@ import (
 	"testing"
 
 	"github.com/kvalv/shoplist/migrations"
+	"github.com/kvalv/shoplist/stores/clasohlson"
 	_ "modernc.org/sqlite"
 )
 
 func TestSqliteBasic(t *testing.T) {
-	repo, _ := NewMock(t)
+	repo := NewTestRepository(t)
 
 	// Create a cart
 	cart := New()
-	if err := repo.Save(New()); err != nil {
+	if err := repo.Save(cart); err != nil {
 		t.Fatalf("Failed to save cart: %s", err)
 	}
 	t.Logf("Created cart: %+v", cart)
@@ -34,7 +35,7 @@ func TestSqliteBasic(t *testing.T) {
 }
 
 func TestAddAndTick(t *testing.T) {
-	repo, _ := NewMock(t)
+	repo := NewTestRepository(t).WithUsers("alice", "bob")
 
 	cart := New()
 	item := cart.Add("milk", "alice")
@@ -63,12 +64,30 @@ func TestAddAndTick(t *testing.T) {
 }
 
 func TestSelectClasOhlsonItem(t *testing.T) {
-	repo, _ := NewMock(t)
+	repo := NewTestRepository(t).WithUsers("alice")
 
 	cart := New()
 	item := cart.Add("milk", "alice")
+	item.Clas = &ClasSearch{
+		Candidates: []clasohlson.Item{
+			{
+				ID:        "a",
+				Name:      "Skopose",
+				Price:     100,
+				URL:       "google.com",
+				Picture:   "gogle.com",
+				Reviews:   1,
+				Stock:     1,
+				Locations: []clasohlson.ShelfLocation{},
+			},
+		},
+	}
 
 	repo.MustSave(cart)
+
+	if err := repo.SelectClasOhlsonItem(item.ID, 0); err != nil {
+		t.Fatalf("SelectClasOhlsonItem() error: %v", err)
+	}
 
 	if err := repo.SelectClasOhlsonItem(item.ID, 1); err == nil {
 		t.Fatalf("Expected error when selecting Clas Ohlson item without candidates, but got none")
@@ -89,7 +108,7 @@ func expectItem(t *testing.T, repo *TestRepository, cartID string, itemID string
 }
 
 func TestCollaborator(t *testing.T) {
-	repo, _ := NewMock(t)
+	repo := NewTestRepository(t).WithUsers("alice", "bob")
 
 	t.Run("no collaborator", func(t *testing.T) {
 		cart := New()
@@ -100,11 +119,11 @@ func TestCollaborator(t *testing.T) {
 	})
 
 	t.Run("with collaborator due to trigger", func(t *testing.T) {
-		cart := New().WithCreator("user")
+		cart := New().WithCreator("alice")
 		if err := repo.Save(cart); err != nil {
 			t.Fatalf("Failed to save cart: %s", err)
 		}
-		expectCollaborator(t, repo, cart.ID, "user", true)
+		expectCollaborator(t, repo, cart.ID, "alice", true)
 	})
 
 	t.Run("add collaborator", func(t *testing.T) {
@@ -112,12 +131,12 @@ func TestCollaborator(t *testing.T) {
 		if err := repo.Save(cart); err != nil {
 			t.Fatalf("Failed to save cart: %s", err)
 		}
-		expectCollaborator(t, repo, cart.ID, "newuser", false)
+		expectCollaborator(t, repo, cart.ID, "bob", false)
 
-		if err := repo.AddCollaborators(cart.ID, "newuser"); err != nil {
+		if err := repo.AddCollaborators(cart.ID, "bob"); err != nil {
 			t.Fatalf("AddCollaborator() error: %v", err)
 		}
-		expectCollaborator(t, repo, cart.ID, "newuser", true)
+		expectCollaborator(t, repo, cart.ID, "bob", true)
 	})
 }
 
@@ -175,13 +194,8 @@ func query(t *testing.T, db *sql.DB, format string, args ...any) {
 	t.Logf("Total rows: %d\n\n", n)
 }
 
-func NewMock(t *testing.T, dsn ...string) (*TestRepository, *sql.DB) {
-	dsn_ := ":memory:"
-	if len(dsn) > 0 {
-		dsn_ = dsn[0]
-	}
-
-	db, err := sql.Open("sqlite", dsn_)
+func NewTestRepository(t *testing.T) *TestRepository {
+	db, err := sql.Open("sqlite", ":memory:")
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
@@ -192,32 +206,32 @@ func NewMock(t *testing.T, dsn ...string) (*TestRepository, *sql.DB) {
 		t.Fatalf("Failed to run migrations: %v", err)
 	}
 
-	mustWithUsers(db, "alice", "bob")
-
 	repo, err := NewRepository(db)
 	if err != nil {
 		panic(err)
 	}
-	return &TestRepository{SqliteRepository: *repo, t: t}, db
-}
-
-func mustWithUsers(db *sql.DB, userIDs ...string) {
-	for _, userID := range userIDs {
-		if _, err := db.Exec(`INSERT INTO users (user_id, name, email) VALUES (?, ?, ?) ON CONFLICT DO NOTHING`, userID, userID, userID+"@example.com"); err != nil {
-			panic(err)
-		}
-	}
+	return &TestRepository{SqliteRepository: *repo, t: t, db: db}
 }
 
 // A SqliteRepository, wrapped with utility funcs
 type TestRepository struct {
 	SqliteRepository
-	t *testing.T
+	t  *testing.T
+	db *sql.DB
 }
 
 func (r *TestRepository) MustSave(cart *Cart) *TestRepository {
 	if err := r.Save(cart); err != nil {
 		r.t.Fatalf("Save() error: %v", err)
+	}
+	return r
+}
+
+func (r *TestRepository) WithUsers(userIDs ...string) *TestRepository {
+	for _, userID := range userIDs {
+		if _, err := r.db.Exec(`INSERT INTO users (user_id, name, email) VALUES (?, ?, ?) ON CONFLICT DO NOTHING`, userID, userID, userID+"@example.com"); err != nil {
+			r.t.Fatalf("WithUsers() error: %v", err)
+		}
 	}
 	return r
 }

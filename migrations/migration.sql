@@ -53,19 +53,17 @@ CREATE TABLE IF NOT EXISTS items(
     created_at DATETIME NOT NULL,
     created_by text REFERENCES users(user_id) ON DELETE SET NULL,
     updated_by text REFERENCES users(user_id) ON DELETE SET NULL,
-    updated_at DATETIME,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     clas_chosen integer
 );
 
 CREATE TABLE IF NOT EXISTS clas_candidates(
     item_id text NOT NULL REFERENCES items(id) ON DELETE CASCADE,
     idx integer NOT NULL,
-    gtm_id text NOT NULL,
     name text NOT NULL,
     price real NOT NULL,
     url text NOT NULL,
     picture text NOT NULL,
-    reviews integer NOT NULL,
     stock integer NOT NULL,
     area text,
     shelf text,

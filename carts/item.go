@@ -7,16 +7,16 @@ import (
 )
 
 type Item struct {
-	ID        string
-	Text      string
-	Checked   bool
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID         string    `db:"id"`
+	Text       string    `db:"text"`
+	Checked    bool      `db:"checked"`
+	CreatedAt  time.Time `db:"created_at"`
+	UpdatedAt  time.Time `db:"updated_at"`
+	UpdatedBy  string    `db:"updated_by"`
+	CreatedBy  string    `db:"created_by"`
+	ClasChosen *int      `db:"clas_chosen"`
 
-	UpdatedBy string
-	CreatedBy string
-
-	Clas *ClasSearch
+	Clas *ClasSearch `db:"-"`
 }
 
 func (i *Item) Toggle(toggledBy string) *Item {
