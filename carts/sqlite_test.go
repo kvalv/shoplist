@@ -109,6 +109,26 @@ func TestSelectClasOhlsonItem(t *testing.T) {
 
 }
 
+func TestDeleteItem(t *testing.T) {
+	repo := NewTestRepository(t).WithUsers("alice")
+
+	cart := New()
+	item := cart.Add("skopose", "alice")
+	repo.MustSave(cart)
+
+	if err := repo.DeleteItem(item.ID); err != nil {
+		t.Fatalf("DeleteItem() error: %v", err)
+	}
+
+	got, err := repo.Cart(cart.ID)
+	if err != nil {
+		t.Fatalf("Cart() error: %v", err)
+	}
+	if got.Get(item.ID) != nil {
+		t.Fatalf("Expected item to be deleted, but it still exists")
+	}
+}
+
 func TestCollaborator(t *testing.T) {
 	repo := NewTestRepository(t).WithUsers("alice", "bob")
 

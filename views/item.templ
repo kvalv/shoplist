@@ -19,10 +19,14 @@ templ CartItem(item *carts.Item, isShopping bool, s stores.Store) {
 }
 
 templ ClasOhlsonItem(item *carts.Item, isShopping bool) {
-	<details>
-		<summary class="outline">
+	<div class="flex items-center gap-1">
+		<!-- Item content (left) -->
+		<div
+			class="flex-grow pointer"
+			data-on:click={ f("document.getElementById('clas-%s').toggleAttribute('hidden')", item.ID) }
+		>
 			if selected := item.Clas.Selected(); selected != nil {
-				<div class="flex gap-2">
+				<div class="flex gap-2 items-center">
 					<img
 						src={ selected.Picture }
 						alt={ selected.Name }
@@ -46,36 +50,51 @@ templ ClasOhlsonItem(item *carts.Item, isShopping bool) {
 					}
 				</div>
 			}
-		</summary>
-		if item.Clas != nil {
-			<ul class="flex-col gap-1 pl-2 ">
-				for _, el := range item.Clas.Candidates {
-					<li
-						data-on:click={ f("@post('/select-clas-item?id=%s&clasId=%s')", item.ID, el.ID) }
-						class={
-							"flex gap-2 p-1 border-divider",
-							templ.KV("border-success", item.Clas.Chosen == el.ID),
-						}
+		</div>
+		<!-- Actions (right) -->
+		<details class="dropdown" style="margin: 0;">
+			<summary role="button" class="outline secondary btn-icon">
+				@IconDotsThreeVertical()
+			</summary>
+			<ul dir="rtl">
+				<li>
+					<a
+						href="#"
+						data-on:click__prevent={ f("@post('/delete?id=%s')", item.ID) }
 					>
-						<img
-							src={ el.Picture }
-							alt={ el.Name }
-							class="img-thumb-lg"
-						/>
-						<div class="flex-col gap-half">
-							{ el.Name }
-							<div class="text-xs flex gap-1">
-								@Price(el.Price)
-								@Availability(el.Stock)
-							</div>
-						</div>
-					</li>
-				}
+						Delete
+					</a>
+				</li>
 			</ul>
-		} else {
-			<span>No suggestions</span>
-		}
-	</details>
+		</details>
+	</div>
+	<!-- Expandable candidates list -->
+	if item.Clas != nil && len(item.Clas.Candidates) > 0 {
+		<ul id={ f("clas-%s", item.ID) } class="flex-col gap-1 pl-2" hidden>
+			for _, el := range item.Clas.Candidates {
+				<li
+					data-on:click={ f("@post('/select-clas-item?id=%s&clasId=%s')", item.ID, el.ID) }
+					class={
+						"flex gap-2 p-1 border-divider",
+						templ.KV("border-success", item.Clas.Chosen == el.ID),
+					}
+				>
+					<img
+						src={ el.Picture }
+						alt={ el.Name }
+						class="img-thumb-lg"
+					/>
+					<div class="flex-col gap-half">
+						{ el.Name }
+						<div class="text-xs flex gap-1">
+							@Price(el.Price)
+							@Availability(el.Stock)
+						</div>
+					</div>
+				</li>
+			}
+		</ul>
+	}
 }
 
 templ Price(price float64) {

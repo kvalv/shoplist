@@ -189,6 +189,7 @@ func run(ctx context.Context, log *slog.Logger) error {
 	r.HandleFunc("/set-store", commands.NewSetStore(repo, bus))
 	r.HandleFunc("/switch-cart", commands.NewSwitchCart(repo, bus))
 	r.HandleFunc("/select-clas-item", commands.NewSelectClasItem(repo, bus))
+	r.HandleFunc("/delete", commands.NewDeleteItem(repo, bus))
 
 	log.Info("starting server", "addr", server.Addr)
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {

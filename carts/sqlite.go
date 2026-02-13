@@ -196,6 +196,14 @@ func (r *SqliteRepository) SelectClasOhlsonItem(itemID string, clasID string) er
 	return tx.Commit()
 }
 
+func (r *SqliteRepository) DeleteItem(itemID string) error {
+	_, err := r.db.Exec("DELETE FROM items WHERE id = ?", itemID)
+	if err != nil {
+		return fmt.Errorf("delete item: %w", err)
+	}
+	return nil
+}
+
 func (r *SqliteRepository) Collaborators(cartID string) ([]string, error) {
 	var rows []struct {
 		UserID string `db:"user_id"`
