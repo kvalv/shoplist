@@ -207,6 +207,14 @@ func (r *SqliteRepository) AddMessage(msg *Message) error {
 	return nil
 }
 
+func (r *SqliteRepository) Message(id string) (*Message, error) {
+	var msg Message
+	if err := get(r.db, &msg, `SELECT id, cart_id, role, user_id, text, item_id, picture, created_at FROM messages WHERE id = ?`, id); err != nil {
+		return nil, err
+	}
+	return &msg, nil
+}
+
 func (r *SqliteRepository) Messages(cartID string) ([]*Message, error) {
 	var msgs []*Message
 	if err := many(&msgs, r.db, `SELECT id, cart_id, role, user_id, text, item_id, picture, created_at FROM messages WHERE cart_id = ? ORDER BY created_at ASC`, cartID); err != nil {

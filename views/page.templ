@@ -41,7 +41,7 @@ templ cartList(items []*carts.Item) {
 	}
 }
 
-templ Page(current *carts.Cart, choices []*carts.Cart) {
+templ Page(current *carts.Cart, choices []*carts.Cart, messages []*carts.Message) {
 	if current == nil {
 		return "current is nil"
 	}
@@ -101,6 +101,7 @@ templ Page(current *carts.Cart, choices []*carts.Cart) {
 					</button>
 				</form>
 				@cartList(current.Items)
+				@Chat(messages)
 			</main>
 		</body>
 	</html>

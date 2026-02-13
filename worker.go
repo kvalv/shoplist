@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"github.com/kvalv/shoplist/carts"
 	"github.com/kvalv/shoplist/events"
+	"github.com/kvalv/shoplist/llm"
 	"github.com/kvalv/shoplist/stores"
 	"github.com/kvalv/shoplist/stores/clasohlson"
 )
@@ -35,6 +37,31 @@ func RunBackgroundWorker(
 					WithName("Min første handleliste").
 					WithCreator(ev.UserID),
 				)
+
+			case events.ChatAdded:
+				log.Info("ChatAdded", "cartID", ev.CartID, "messageID", ev.MessageID)
+				msg, err := repo.Message(ev.MessageID)
+				if err != nil {
+					log.Error("Failed to get message", "error", err)
+					continue
+				}
+				if !strings.HasPrefix(msg.Text, "@assistant:") {
+					continue
+				}
+				prompt := strings.TrimSpace(strings.TrimPrefix(msg.Text, "@assistant:"))
+				var resp struct {
+					Answer string `json:"answer" desc:"a helpful answer to the user's question"`
+				}
+				if err := llm.StructuredQuery(ctx, prompt, &resp); err != nil {
+					log.Error("LLM query failed", "error", err)
+					continue
+				}
+				reply := carts.NewMessage(ev.CartID, resp.Answer).WithAssistant()
+				if err := repo.AddMessage(reply); err != nil {
+					log.Error("Failed to add assistant reply", "error", err)
+					continue
+				}
+				bus.Publish(events.CartUpdated{CartID: ev.CartID})
 
 			case events.CartUpdated:
 				log.Info("Received event", "type", fmt.Sprintf("%T", ev), "event", ev)

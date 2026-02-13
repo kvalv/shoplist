@@ -135,7 +135,8 @@ func run(ctx context.Context, log *slog.Logger) error {
 			return
 			// panic(fmt.Errorf("failed to fetch cart: %w id=%q", err, chi.URLParam(r, "id")))
 		}
-		templ.Handler(views.Page(cart, nil)).ServeHTTP(w, r)
+		msgs, _ := repo.Messages(cart.ID)
+		templ.Handler(views.Page(cart, nil, msgs)).ServeHTTP(w, r)
 	})
 
 	r.HandleFunc("/static/", func(w http.ResponseWriter, r *http.Request) {
@@ -154,11 +155,15 @@ func run(ctx context.Context, log *slog.Logger) error {
 
 		// send initial render
 		var first *carts.Cart
-		carts, _ := repo.List(5)
-		if len(carts) > 0 {
-			first = carts[0]
+		cartList, _ := repo.List(5)
+		if len(cartList) > 0 {
+			first = cartList[0]
 		}
-		sse.PatchElementTempl(views.Page(first, carts))
+		var msgs []*carts.Message
+		if first != nil {
+			msgs, _ = repo.Messages(first.ID)
+		}
+		sse.PatchElementTempl(views.Page(first, cartList, msgs))
 
 		done := r.Context().Done()
 		for {
@@ -166,12 +171,13 @@ func run(ctx context.Context, log *slog.Logger) error {
 			case <-done:
 				return
 			case event := <-sub.Ch:
-				carts, _ := repo.List(5)
+				cartList, _ := repo.List(5)
 				log.Info("render fat morph",
 					"event", fmt.Sprintf("%T", event),
-					"cartID", carts[0].ID,
+					"cartID", cartList[0].ID,
 				)
-				sse.PatchElementTempl(views.Page(carts[0], carts))
+				msgs, _ := repo.Messages(cartList[0].ID)
+				sse.PatchElementTempl(views.Page(cartList[0], cartList, msgs))
 			}
 		}
 	})
@@ -190,6 +196,7 @@ func run(ctx context.Context, log *slog.Logger) error {
 	r.HandleFunc("/switch-cart", commands.NewSwitchCart(repo, bus))
 	r.HandleFunc("/select-clas-item", commands.NewSelectClasItem(repo, bus))
 	r.HandleFunc("/delete", commands.NewDeleteItem(repo, bus))
+	r.HandleFunc("/add-message", commands.NewAddMessage(repo, bus))
 
 	log.Info("starting server", "addr", server.Addr)
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {

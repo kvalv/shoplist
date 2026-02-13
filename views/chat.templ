@@ -1,0 +1,43 @@
+package views
+
+import "github.com/kvalv/shoplist/carts"
+
+templ ChatMessage(msg *carts.Message) {
+	<div class="chat-bubble">
+		<span class="chat-name">{ derefOr(msg.UserID, string(msg.Role)) }</span>
+		<span>{ msg.Text }</span>
+	</div>
+}
+
+func derefOr(p *string, fallback string) string {
+	if p != nil {
+		return *p
+	}
+	return fallback
+}
+
+templ ChatInput() {
+	<form class="form-chat" data-on:submit="@post('/add-message')">
+		<input
+			data-bind="chatMsg"
+			type="text"
+			placeholder="Message..."
+			autocomplete="off"
+		/>
+		<button class="btn-icon" data-attr:disabled="$chatMsg === ''" type="submit">
+			@IconPaperPlane()
+		</button>
+	</form>
+}
+
+templ Chat(messages []*carts.Message) {
+	<details open class="chat-panel">
+		<summary>Chat</summary>
+		<div class="chat-messages flex-col gap-half">
+			for _, msg := range messages {
+				@ChatMessage(msg)
+			}
+		</div>
+		@ChatInput()
+	</details>
+}

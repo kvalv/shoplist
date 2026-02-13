@@ -10,6 +10,7 @@ type signals struct {
 	Current string `json:"current"` // current cart ID
 	Name    string `json:"name"`    // name for current cart
 	Text    string `json:"text"`    // text for new item
+	ChatMsg string `json:"chatMsg"` // text for new chat message
 }
 
 // we're just going to panic on error, for simplicity

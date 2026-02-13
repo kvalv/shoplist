@@ -276,6 +276,47 @@ svg {
   /* background-color: red; */
 }
 
+.chat-panel {
+  border: 1px solid var(--pico-muted-border-color);
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+  margin-top: 16px;
+}
+
+.chat-messages {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.chat-bubble {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background-color: var(--pico-card-background-color);
+}
+
+.chat-name {
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: var(--pico-secondary);
+}
+
+.form-chat {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.form-chat input {
+  font-size: 0.875rem;
+  padding: 4px 8px;
+  margin-bottom: 0;
+  height: 36px;
+}
+
 .item-plan-clas {
   display: flex;
   flex-direction: row;
