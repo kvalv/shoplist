@@ -180,12 +180,12 @@ func run(ctx context.Context, log *slog.Logger) error {
 		}
 	}()
 
-	r.HandleFunc("/add", commands.NewAddItem(repo, bus, log))
-	r.HandleFunc("/check", commands.NewCheckItem(repo, bus, log))
-	r.HandleFunc("/set-name", commands.NewSetName(repo, bus, log))
-	r.HandleFunc("/set-store", commands.NewSetStore(repo, bus, log))
-	r.HandleFunc("/switch-cart", commands.NewSwitchCart(repo, bus, log))
-	r.HandleFunc("/select-clas-item", commands.NewSelectClasItem(repo, bus, log))
+	r.HandleFunc("/add", commands.NewAddItem(repo, bus))
+	r.HandleFunc("/check", commands.NewCheckItem(repo, bus))
+	r.HandleFunc("/set-name", commands.NewSetName(repo, bus))
+	r.HandleFunc("/set-store", commands.NewSetStore(repo, bus))
+	r.HandleFunc("/switch-cart", commands.NewSwitchCart(repo, bus))
+	r.HandleFunc("/select-clas-item", commands.NewSelectClasItem(repo, bus))
 
 	log.Info("starting server", "addr", server.Addr)
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {

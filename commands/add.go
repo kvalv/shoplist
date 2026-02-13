@@ -2,13 +2,13 @@ package commands
 
 import (
 	"context"
-	"log/slog"
 	"net/http"
 	"net/url"
 
 	"github.com/kvalv/shoplist/auth"
 	"github.com/kvalv/shoplist/carts"
 	"github.com/kvalv/shoplist/events"
+	"github.com/kvalv/shoplist/logger"
 	"github.com/kvalv/shoplist/recipe"
 	"github.com/starfederation/datastar-go/datastar"
 )
@@ -16,9 +16,9 @@ import (
 func NewAddItem(
 	repo *carts.SqliteRepository,
 	bus *events.Bus,
-	log *slog.Logger,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		log := logger.FromRequest(r)
 		signals := SignalsFromRequest(r)
 		claims := auth.ClaimsFromRequest(r)
 

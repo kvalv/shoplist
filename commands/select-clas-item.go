@@ -1,20 +1,20 @@
 package commands
 
 import (
-	"log/slog"
 	"net/http"
 	"strconv"
 
 	"github.com/kvalv/shoplist/carts"
 	"github.com/kvalv/shoplist/events"
+	"github.com/kvalv/shoplist/logger"
 )
 
 func NewSelectClasItem(
 	repo *carts.SqliteRepository,
 	bus *events.Bus,
-	log *slog.Logger,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		log := logger.FromRequest(r)
 		ID := r.URL.Query().Get("id")
 		index, err := strconv.Atoi(r.URL.Query().Get("index"))
 		if err != nil {

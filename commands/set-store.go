@@ -1,12 +1,12 @@
 package commands
 
 import (
-	"log/slog"
 	"net/http"
 	"strconv"
 
 	"github.com/kvalv/shoplist/carts"
 	"github.com/kvalv/shoplist/events"
+	"github.com/kvalv/shoplist/logger"
 	"github.com/kvalv/shoplist/stores"
 	"github.com/starfederation/datastar-go/datastar"
 )
@@ -14,9 +14,9 @@ import (
 func NewSetStore(
 	repo *carts.SqliteRepository,
 	bus *events.Bus,
-	log *slog.Logger,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		log := logger.FromRequest(r)
 		cart, _ := repo.Latest()
 		var signals struct {
 			Store string `json:"store"`
