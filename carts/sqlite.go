@@ -196,6 +196,25 @@ func (r *SqliteRepository) SelectClasOhlsonItem(itemID string, clasID string) er
 	return tx.Commit()
 }
 
+func (r *SqliteRepository) AddMessage(msg *Message) error {
+	_, err := r.db.Exec(
+		`INSERT INTO messages (id, cart_id, role, user_id, text, item_id, picture, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		msg.ID, msg.CartID, msg.Role, msg.UserID, msg.Text, msg.ItemID, msg.Picture, msg.CreatedAt,
+	)
+	if err != nil {
+		return fmt.Errorf("add message: %w", err)
+	}
+	return nil
+}
+
+func (r *SqliteRepository) Messages(cartID string) ([]*Message, error) {
+	var msgs []*Message
+	if err := many(&msgs, r.db, `SELECT id, cart_id, role, user_id, text, item_id, picture, created_at FROM messages WHERE cart_id = ? ORDER BY created_at ASC`, cartID); err != nil {
+		return nil, err
+	}
+	return msgs, nil
+}
+
 func (r *SqliteRepository) DeleteItem(itemID string) error {
 	_, err := r.db.Exec("DELETE FROM items WHERE id = ?", itemID)
 	if err != nil {

@@ -72,6 +72,18 @@ CREATE TABLE IF NOT EXISTS clas_candidates(
     UNIQUE (item_id, idx)
 );
 
+-- Chat / notes
+CREATE TABLE IF NOT EXISTS messages(
+    id text PRIMARY KEY,
+    cart_id text NOT NULL REFERENCES carts(id) ON DELETE CASCADE,
+    role text NOT NULL DEFAULT 'user',
+    user_id text REFERENCES users(user_id) ON DELETE SET NULL,
+    text text NOT NULL,
+    item_id text REFERENCES items(id) ON DELETE SET NULL,
+    picture text,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Cron tables
 CREATE TABLE IF NOT EXISTS cron_jobs(
     name text PRIMARY KEY,

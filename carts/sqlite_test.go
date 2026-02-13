@@ -162,6 +162,165 @@ func TestCollaborator(t *testing.T) {
 	})
 }
 
+func TestMessage(t *testing.T) {
+	repo := NewTestRepository(t).WithUsers("alice")
+
+	cart := New()
+	item := cart.Add("milk", "alice")
+	repo.MustSave(cart)
+
+	t.Run("basic", func(t *testing.T) {
+		msg := NewMessage(cart.ID, "don't forget the oat milk").WithUser("alice")
+		if err := repo.AddMessage(msg); err != nil {
+			t.Fatalf("AddMessage() error: %v", err)
+		}
+
+		msgs, err := repo.Messages(cart.ID)
+		if err != nil {
+			t.Fatalf("Messages() error: %v", err)
+		}
+		if len(msgs) != 1 {
+			t.Fatalf("expected 1 message, got %d", len(msgs))
+		}
+		got := msgs[0]
+		if got.Text != "don't forget the oat milk" {
+			t.Errorf("text = %q, want %q", got.Text, "don't forget the oat milk")
+		}
+		if got.Role != RoleUser {
+			t.Errorf("role = %q, want %q", got.Role, RoleUser)
+		}
+		if got.UserID == nil || *got.UserID != "alice" {
+			t.Errorf("user_id = %v, want 'alice'", got.UserID)
+		}
+		if got.ItemID != nil {
+			t.Errorf("item_id = %v, want nil", got.ItemID)
+		}
+	})
+
+	t.Run("with item link", func(t *testing.T) {
+		msg := NewMessage(cart.ID, "this one is expired").WithUser("alice").WithItem(item.ID)
+		if err := repo.AddMessage(msg); err != nil {
+			t.Fatalf("AddMessage() error: %v", err)
+		}
+
+		msgs, err := repo.Messages(cart.ID)
+		if err != nil {
+			t.Fatalf("Messages() error: %v", err)
+		}
+		// find our message
+		var got *Message
+		for _, m := range msgs {
+			if m.ID == msg.ID {
+				got = m
+			}
+		}
+		if got == nil {
+			t.Fatalf("message %s not found", msg.ID)
+		}
+		if got.ItemID == nil || *got.ItemID != item.ID {
+			t.Errorf("item_id = %v, want %q", got.ItemID, item.ID)
+		}
+	})
+
+	t.Run("survives item delete", func(t *testing.T) {
+		item2 := cart.Add("bread", "alice")
+		repo.MustSave(cart)
+
+		msg := NewMessage(cart.ID, "sold out").WithSystem().WithItem(item2.ID)
+		if err := repo.AddMessage(msg); err != nil {
+			t.Fatalf("AddMessage() error: %v", err)
+		}
+
+		if err := repo.DeleteItem(item2.ID); err != nil {
+			t.Fatalf("DeleteItem() error: %v", err)
+		}
+
+		msgs, err := repo.Messages(cart.ID)
+		if err != nil {
+			t.Fatalf("Messages() error: %v", err)
+		}
+		var got *Message
+		for _, m := range msgs {
+			if m.ID == msg.ID {
+				got = m
+			}
+		}
+		if got == nil {
+			t.Fatalf("message %s not found after item delete", msg.ID)
+		}
+		if got.ItemID != nil {
+			t.Errorf("item_id = %v, want nil after item delete", got.ItemID)
+		}
+	})
+
+	t.Run("ordered by time", func(t *testing.T) {
+		cart2 := New()
+		repo.MustSave(cart2)
+
+		m1 := NewMessage(cart2.ID, "first").WithUser("alice")
+		m2 := NewMessage(cart2.ID, "second").WithAssistant()
+		m3 := NewMessage(cart2.ID, "third").WithSystem()
+		// ensure ordering via incrementing timestamps
+		m2.CreatedAt = m1.CreatedAt.Add(1)
+		m3.CreatedAt = m1.CreatedAt.Add(2)
+
+		for _, m := range []*Message{m3, m1, m2} { // insert out of order
+			if err := repo.AddMessage(m); err != nil {
+				t.Fatalf("AddMessage() error: %v", err)
+			}
+		}
+
+		msgs, err := repo.Messages(cart2.ID)
+		if err != nil {
+			t.Fatalf("Messages() error: %v", err)
+		}
+		if len(msgs) != 3 {
+			t.Fatalf("expected 3 messages, got %d", len(msgs))
+		}
+		if msgs[0].Text != "first" || msgs[1].Text != "second" || msgs[2].Text != "third" {
+			t.Errorf("order = [%s, %s, %s], want [first, second, third]", msgs[0].Text, msgs[1].Text, msgs[2].Text)
+		}
+	})
+
+	t.Run("roles", func(t *testing.T) {
+		cart3 := New()
+		repo.MustSave(cart3)
+
+		userMsg := NewMessage(cart3.ID, "hey").WithUser("alice")
+		assistantMsg := NewMessage(cart3.ID, "hello").WithAssistant()
+		systemMsg := NewMessage(cart3.ID, "item added").WithSystem()
+
+		for _, m := range []*Message{userMsg, assistantMsg, systemMsg} {
+			if err := repo.AddMessage(m); err != nil {
+				t.Fatalf("AddMessage() error: %v", err)
+			}
+		}
+
+		msgs, err := repo.Messages(cart3.ID)
+		if err != nil {
+			t.Fatalf("Messages() error: %v", err)
+		}
+		if len(msgs) != 3 {
+			t.Fatalf("expected 3 messages, got %d", len(msgs))
+		}
+
+		for _, m := range msgs {
+			switch m.Role {
+			case RoleUser:
+				if m.UserID == nil || *m.UserID != "alice" {
+					t.Errorf("user role: user_id = %v, want 'alice'", m.UserID)
+				}
+			case RoleAssistant, RoleSystem:
+				if m.UserID != nil {
+					t.Errorf("%s role: user_id = %v, want nil", m.Role, m.UserID)
+				}
+			default:
+				t.Errorf("unexpected role %q", m.Role)
+			}
+		}
+	})
+}
+
 func expectItem(t *testing.T, repo *TestRepository, cartID string, itemID string, cb func(item *Item)) {
 	cart, err := repo.Cart(cartID)
 	if err != nil {
