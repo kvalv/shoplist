@@ -4,7 +4,7 @@ import "github.com/kvalv/shoplist/carts"
 
 templ ChatMessage(msg *carts.Message) {
 	<div class="chat-bubble">
-		<span class="chat-name">{ derefOr(msg.UserID, string(msg.Role)) }</span>
+		<span class="chat-name"><span class="fw-600">{ derefOr(msg.UserID, string(msg.Role)) }</span> <span class="fw-300">{ msg.CreatedAt.Format("15:04") }</span></span>
 		<span>{ msg.Text }</span>
 	</div>
 }
@@ -17,7 +17,7 @@ func derefOr(p *string, fallback string) string {
 }
 
 templ ChatInput() {
-	<form class="form-chat" data-on:submit="@post('/add-message')">
+	<form class="form-chat flex gap-1" data-on:submit="@post('/add-message')">
 		<input
 			data-bind="chatMsg"
 			type="text"

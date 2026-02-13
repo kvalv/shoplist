@@ -74,6 +74,9 @@ details {
 .fw-500 {
   font-weight: 500;
 }
+.fw-600 {
+  font-weight: 600;
+}
 .items-center {
   align-items: center;
 }
@@ -292,29 +295,28 @@ svg {
 .chat-bubble {
   display: flex;
   flex-direction: column;
-  padding: 4px 8px;
+  padding: 8px 12px;
   border-radius: 6px;
   background-color: var(--pico-card-background-color);
+  font-size: 0.85rem;
+  color: var(--pico-secondary);
 }
 
 .chat-name {
-  font-weight: 600;
   font-size: 0.75rem;
   color: var(--pico-secondary);
 }
 
 .form-chat {
-  display: flex;
-  gap: 4px;
   align-items: center;
   margin-top: 8px;
 }
 
 .form-chat input {
+  width: calc(100% - 40px);
   font-size: 0.875rem;
   padding: 4px 8px;
   margin-bottom: 0;
-  height: 36px;
 }
 
 .item-plan-clas {

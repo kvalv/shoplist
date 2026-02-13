@@ -15,8 +15,7 @@ type Options struct {
 	PrintQuery    bool
 	PrintResponse bool
 	Thinking      bool
-	Tools         []*genai.Tool
-	ExecTool      func(name string, args map[string]any) (map[string]any, error)
+	Tools         []Tool
 }
 
 // StructuredQuery passes the query into the llm and returns the response in the provided struct. Each field _must_ have a 'json' tag, and _may_ have a 'desc' tag.
@@ -40,7 +39,8 @@ func StructuredQuery(ctx context.Context, query string, recv any, opts ...Option
 	if err != nil {
 		return fmt.Errorf("failed to generate schema: %w", err)
 	}
-	cfg.Tools = opt.Tools
+	genaiTools, execTool := toGenaiTools(opt.Tools)
+	cfg.Tools = genaiTools
 
 	if opt.PrintQuery {
 		fmt.Printf("LLM Query: %s\n", query)
@@ -55,7 +55,7 @@ func StructuredQuery(ctx context.Context, query string, recv any, opts ...Option
 	}
 
 	model := "gemini-2.5-flash"
-	if len(opt.Tools) > 0 {
+	if len(genaiTools) > 0 {
 		model = "gemini-3-flash-preview"
 	}
 
@@ -92,7 +92,7 @@ func StructuredQuery(ctx context.Context, query string, recv any, opts ...Option
 		contents = append(contents, res.Candidates[0].Content)
 		var funcResps []*genai.Part
 		for _, fc := range funcCalls {
-			output, err := opt.ExecTool(fc.Name, fc.Args)
+			output, err := execTool(fc.Name, fc.Args)
 			if err != nil {
 				output = map[string]any{"error": err.Error()}
 			}

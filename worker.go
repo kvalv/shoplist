@@ -45,15 +45,27 @@ func RunBackgroundWorker(
 					log.Error("Failed to get message", "error", err)
 					continue
 				}
-				if !strings.HasPrefix(msg.Text, "@assistant:") {
+
+				cart, err := repo.Cart(ev.CartID)
+				if err != nil {
+					log.Error("Failed to get cart", "error", err)
 					continue
 				}
-				prompt := strings.TrimSpace(strings.TrimPrefix(msg.Text, "@assistant:"))
+
+				tools := chatTools(repo, bus, cart, log)
 				var resp struct {
-					Answer string `json:"answer" desc:"a helpful answer to the user's question"`
+					Answer string `json:"answer" desc:"your reply to the user. Leave empty if the message is not addressed to you."`
 				}
-				if err := llm.StructuredQuery(ctx, prompt, &resp); err != nil {
+				prompt := fmt.Sprintf(`You are a helpful shopping list assistant. You live in the chat of a shared shopping list app.
+Users chat with each other here. Only respond if the message is clearly addressed to you (the assistant) or is a request you can help with (adding/removing items, answering questions about the list).
+If it's just users chatting with each other, set answer to "" and do nothing.
+
+Current message: %s`, msg.Text)
+				if err := llm.StructuredQuery(ctx, prompt, &resp, llm.Options{Tools: tools}); err != nil {
 					log.Error("LLM query failed", "error", err)
+					continue
+				}
+				if resp.Answer == "" {
 					continue
 				}
 				reply := carts.NewMessage(ev.CartID, resp.Answer).WithAssistant()
@@ -119,5 +131,61 @@ func RunBackgroundWorker(
 
 			}
 		}
+	}
+}
+
+func chatTools(
+	repo *carts.SqliteRepository,
+	bus *events.Bus,
+	cart *carts.Cart,
+	log *slog.Logger,
+) []llm.Tool {
+	return []llm.Tool{
+		llm.Func("add_item", "Add an item to the shopping list", func(args struct {
+			Text string `json:"text" desc:"the item to add, e.g. 'milk' or 'bread'"`
+		}) (string, error) {
+			item := cart.Add(args.Text, "assistant")
+			if err := repo.Save(cart); err != nil {
+				return "", err
+			}
+			log.Info("Assistant added item", "text", args.Text, "itemID", item.ID)
+			bus.Publish(events.CartUpdated{CartID: cart.ID, ItemIDs: []string{item.ID}})
+			return fmt.Sprintf("added %q", args.Text), nil
+		}),
+
+		llm.Func("remove_item", "Remove an item from the shopping list by name", func(args struct {
+			Text string `json:"text" desc:"the item name to remove"`
+		}) (string, error) {
+			lower := strings.ToLower(args.Text)
+			for _, item := range cart.Items {
+				if strings.ToLower(item.Text) == lower {
+					if err := repo.DeleteItem(item.ID); err != nil {
+						return "", err
+					}
+					log.Info("Assistant removed item", "text", item.Text, "itemID", item.ID)
+					bus.Publish(events.CartUpdated{CartID: cart.ID})
+					return fmt.Sprintf("removed %q", item.Text), nil
+				}
+			}
+			return fmt.Sprintf("item %q not found in the list", args.Text), nil
+		}),
+
+		llm.Func("list_items", "List all items currently in the shopping list", func(args struct {
+			IncludeChecked bool `json:"include_checked" desc:"whether to include already checked-off items" required:"false"`
+		}) ([]string, error) {
+			var items []string
+			for _, item := range cart.Items {
+				if !args.IncludeChecked && item.Checked {
+					continue
+				}
+				status := ""
+				if item.Checked {
+					status = " (checked)"
+				}
+				items = append(items, item.Text+status)
+			}
+			log.Info("Assistant listed items", "count", len(items))
+			return items, nil
+		}),
 	}
 }

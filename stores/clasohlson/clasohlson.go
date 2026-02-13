@@ -8,7 +8,6 @@ import (
 	"net/url"
 
 	"github.com/kvalv/shoplist/llm"
-	"google.golang.org/genai"
 )
 
 type client struct {
@@ -116,23 +115,18 @@ func (c *client) Availability(item Item) (Item, error) {
 }
 
 func (c *client) Query(ctx context.Context, query string, topk int) ([]Item, error) {
-	tools := []*genai.Tool{{
-		FunctionDeclarations: []*genai.FunctionDeclaration{
-			{
-				Name:        "search",
-				Description: "Search for products by name",
-				Parameters: &genai.Schema{
-					Type:     genai.TypeObject,
-					Required: []string{"query"},
-					Properties: map[string]*genai.Schema{
-						"query": {Type: genai.TypeString, Description: "Search query"},
-					},
-				},
-			},
-		},
-	}}
-
 	var searchResults []Item
+	searchTool := llm.Func("search", "Search for products by name", func(args struct {
+		Query string `json:"query" desc:"Search query"`
+	}) (map[string]any, error) {
+		items, err := c.Search(args.Query)
+		if err != nil {
+			return nil, err
+		}
+		searchResults = items
+		return map[string]any{"items": items}, nil
+	})
+
 	var result struct {
 		ProductIDs []string `json:"product_ids"`
 	}
@@ -147,18 +141,7 @@ Rank products by considering:
 Return the product IDs ordered from best to worst match.`, topk, query)
 
 	err := llm.StructuredQuery(ctx, prompt, &result, llm.Options{
-		Tools: tools,
-		ExecTool: func(name string, args map[string]any) (map[string]any, error) {
-			if name == "search" {
-				items, err := c.Search(args["query"].(string))
-				if err != nil {
-					return nil, err
-				}
-				searchResults = items
-				return map[string]any{"items": items}, nil
-			}
-			return nil, fmt.Errorf("unknown tool: %s", name)
-		},
+		Tools: []llm.Tool{searchTool},
 	})
 	if err != nil {
 		return nil, err
