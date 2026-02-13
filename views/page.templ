@@ -18,68 +18,88 @@ func itemText(item *carts.Item) string {
 }
 
 templ cartList(items []*carts.Item) {
-	<ul>
-		for _, item := range items {
-			<li>
-				<label>
-					<input
-						data-on:click__prevent={ fmt.Sprintf("@post('/check?id=%s')", item.ID) }
-						data-init={ fmt.Sprintf("el.checked = %t", item.Checked) }
-						type="checkbox"
-					/>
-					{ itemText(item) }
-				</label>
-			</li>
-		}
-	</ul>
+	for _, item := range items {
+		@CartItem(item, false, stores.ClasOhlson)
+	}
+	if false {
+		<ul>
+			for _, item := range items {
+				<li>
+					<label>
+						<input
+							data-on:click__prevent={ fmt.Sprintf("@post('/check?id=%s')", item.ID) }
+							data-init={ fmt.Sprintf("el.checked = %t", item.Checked) }
+							type="checkbox"
+						/>
+						{ itemText(item) }
+					</label>
+				</li>
+			}
+		</ul>
+	}
 }
 
 templ Page(current *carts.Cart, choices []*carts.Cart) {
 	if current == nil {
 		return "current is nil"
 	}
-	<html id="foo">
+	<html id="foo" data-theme="light">
 		<head>
 			<script type="module" src="https://cdn.jsdelivr.net/gh/starfederation/datastar@1.0.0-RC.7/bundles/datastar.js"></script>
-			<link rel="stylesheet" href="/static/styles.css"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			// <meta name="color-scheme" content="light"/>
+			<link
+				rel="stylesheet"
+				href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.sand.min.css"
+			/>
+			// <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css"/>
+			// <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+			<link rel="stylesheet" href="/static/styles.css?"/>
 		</head>
 		<body
 			id="body"
 			data-init="@get('/render')"
 			data-signals:current={ q(current.ID) }
+			class="container"
 		>
-			<div class="header">
-				<input
-					data-bind:name
-					data-on:blur="@post('/set-name')"
-					value={ current.Name }
-					class="input-like-h3"
-					type="text"
-					aria-label="Cart name"
-				/>
-				@CartSelect(current, choices)
-			</div>
-			<select
-				value={ fmt.Sprintf("\"%d\"", current.TargetStore) }
-				data-bind="store"
-				data-on:change="@post('/set-store')"
-			>
-				<option selected?={ current.TargetStore == stores.Kiwi } value="0">Kiwi</option>
-				<option value="1" selected?={ current.TargetStore == stores.ClasOhlson }>Clas Ohlson</option>
-			</select>
-			<form
-				data-on:submit="@post('/add')"
-			>
-				<input
-					data-bind="text"
-					name="text"
-					type="text"
-					placeholder="Add item"
-					autofocus
-				/>
-				<button data-attr:disabled="$text === ''" type="submit">Add</button>
-			</form>
-			@cartList(current.Items)
+			<main class="container ">
+				<div>
+					<input
+						data-bind:name
+						data-on:blur="@post('/set-name')"
+						value={ current.Name }
+						class="input"
+						type="text"
+						aria-label="Cart name"
+					/>
+					@CartSelect(current, choices)
+				</div>
+				<select
+					value={ fmt.Sprintf("\"%d\"", current.TargetStore) }
+					data-bind="store"
+					data-on:change="@post('/set-store')"
+				>
+					<option selected?={ current.TargetStore == stores.Kiwi } value="0">Kiwi</option>
+					<option value="1" selected?={ current.TargetStore == stores.ClasOhlson }>Clas Ohlson</option>
+				</select>
+				<form
+					class="form-add"
+					data-on:submit="@post('/add')"
+				>
+					<input
+						data-bind="text"
+						name="text"
+						type="text"
+						placeholder="Add item"
+						autocomplete="off"
+						autofocus
+					/>
+					<button data-attr:disabled="$text === ''" type="submit">
+						@IconPlus()
+					</button>
+				</form>
+				@cartList(current.Items)
+			</main>
 		</body>
 	</html>
 }
@@ -105,6 +125,8 @@ templ CartSelect(active *carts.Cart, choices []*carts.Cart) {
 		}
 	</select>
 }
+
+var f = fmt.Sprintf
 
 // convenience function to quote, so we don't have to do { fmt.Sprintf(...) }
 // all over the place.

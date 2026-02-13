@@ -1,0 +1,91 @@
+package views
+
+import "github.com/kvalv/shoplist/carts"
+import "github.com/kvalv/shoplist/stores"
+
+templ CartItem(item *carts.Item, isShopping bool, s stores.Store) {
+	if isShopping {
+		switch s {
+			case stores.ClasOhlson:
+				"shop + clas"
+			case stores.Kiwi:
+				"shop + kiwi"
+		}
+	} else {
+		switch s {
+			case stores.ClasOhlson:
+				@ItemPlanClas(item)
+			case stores.Kiwi:
+				"kiwi + not shop"
+		}
+	}
+}
+
+// Rendered when we're in planning mode, for a clas ohlson item
+templ ItemPlanClas(item *carts.Item) {
+	<div>
+		<details>
+			<summary class="outline">
+				{ item.Text }
+			</summary>
+			if item.Clas != nil {
+				// Renders a list of suggesitons
+				<ul class="flex-col gap-1 pl-2 ">
+					for i, el := range item.Clas.Candidates {
+						<li
+							data-on:click={ f("@post('/select-clas-item?id=%s&index=%d')", item.ID, i) }
+							class="flex gap-2 border rounded-sm p-1 shadow-sm"
+						>
+							<img
+								src={ el.Picture }
+								alt={ el.Name }
+								class="size-10 rounded-box"
+								width="32"
+								height="32"
+								style="border-radius: 4px; object-fit: cover;"
+							/>
+							<div class="flex-col gap-half">
+								{ el.Name }
+								<div class="text-xs flex gap-1">
+									@Price(el.Price)
+									@Availability(el.Stock)
+								</div>
+							</div>
+						</li>
+					}
+				</ul>
+			} else {
+				<span>No suggestions</span>
+			}
+		</details>
+	</div>
+}
+
+templ Price(price float64) {
+	<div class="">
+		{ price } NOK
+	</div>
+}
+
+templ Availability(qty int) {
+	if qty > 5 {
+		<div class="flex gap-half items-center text-secondary text-xs">
+			<div aria-label="status" class="dot bg-success "></div>
+			In stock
+		</div>
+	} else if qty > 0 && qty <= 5 {
+		<div class="flex gap-half items-center text-secondary text-xs">
+			<div aria-label="status" class="dot bg-warning "></div>
+			{ f("%d in stock", qty) }
+		</div>
+	} else {
+		<div class="flex gap-half items-center">
+			<div aria-label="status" class="dot bg-error"></div>
+			Out of stock
+		</div>
+	}
+}
+
+// 24x squared, some rounding on the border
+templ Picture(src string, alt string) {
+}

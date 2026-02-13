@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/kvalv/shoplist/stores"
-	gonanoid "github.com/matoous/go-nanoid/v2"
 )
 
 type Cart struct {
@@ -35,7 +34,7 @@ func (c *Cart) WithCreator(userID string) *Cart {
 func (c *Cart) Add(text string, userID string) *Item {
 	now := time.Now()
 	item := &Item{
-		ID:        gonanoid.Must(8),
+		ID:        newID(),
 		Text:      text,
 		CreatedAt: now,
 		UpdatedAt: now,

@@ -9,7 +9,7 @@ import (
 )
 
 func TestSqliteBasic(t *testing.T) {
-	repo, _ := NewMock()
+	repo, _ := NewMock(t)
 
 	// Create a cart
 	cart := New()
@@ -34,7 +34,7 @@ func TestSqliteBasic(t *testing.T) {
 }
 
 func TestAddAndTick(t *testing.T) {
-	repo, _ := NewMock()
+	repo, _ := NewMock(t)
 
 	cart := New()
 	item := cart.Add("milk", "alice")
@@ -62,7 +62,21 @@ func TestAddAndTick(t *testing.T) {
 	})
 }
 
-func expectItem(t *testing.T, repo *SqliteRepository, cartID string, itemID string, cb func(item *Item)) {
+func TestSelectClasOhlsonItem(t *testing.T) {
+	repo, _ := NewMock(t)
+
+	cart := New()
+	item := cart.Add("milk", "alice")
+
+	repo.MustSave(cart)
+
+	if err := repo.SelectClasOhlsonItem(item.ID, 1); err == nil {
+		t.Fatalf("Expected error when selecting Clas Ohlson item without candidates, but got none")
+	}
+
+}
+
+func expectItem(t *testing.T, repo *TestRepository, cartID string, itemID string, cb func(item *Item)) {
 	cart, err := repo.Cart(cartID)
 	if err != nil {
 		t.Fatalf("Cart() error: %v", err)
@@ -75,7 +89,7 @@ func expectItem(t *testing.T, repo *SqliteRepository, cartID string, itemID stri
 }
 
 func TestCollaborator(t *testing.T) {
-	repo, _ := NewMock()
+	repo, _ := NewMock(t)
 
 	t.Run("no collaborator", func(t *testing.T) {
 		cart := New()
@@ -107,7 +121,7 @@ func TestCollaborator(t *testing.T) {
 	})
 }
 
-func expectCollaborator(t *testing.T, repo *SqliteRepository, cartID string, userID string, exists bool) {
+func expectCollaborator(t *testing.T, repo *TestRepository, cartID string, userID string, exists bool) {
 	userIDs, err := repo.Collaborators(cartID)
 	if err != nil {
 		t.Fatalf("Collaborators() error: %v", err)
@@ -161,7 +175,7 @@ func query(t *testing.T, db *sql.DB, format string, args ...any) {
 	t.Logf("Total rows: %d\n\n", n)
 }
 
-func NewMock(dsn ...string) (*SqliteRepository, *sql.DB) {
+func NewMock(t *testing.T, dsn ...string) (*TestRepository, *sql.DB) {
 	dsn_ := ":memory:"
 	if len(dsn) > 0 {
 		dsn_ = dsn[0]
@@ -169,13 +183,13 @@ func NewMock(dsn ...string) (*SqliteRepository, *sql.DB) {
 
 	db, err := sql.Open("sqlite", dsn_)
 	if err != nil {
-		panic(err)
+		t.Fatalf("Failed to open database: %v", err)
 	}
 	if _, err := db.Exec("PRAGMA foreign_keys = ON"); err != nil {
-		panic(err)
+		t.Fatalf("Failed to enable foreign keys: %v", err)
 	}
 	if err := migrations.Migrate(db); err != nil {
-		panic(err)
+		t.Fatalf("Failed to run migrations: %v", err)
 	}
 
 	mustWithUsers(db, "alice", "bob")
@@ -184,7 +198,7 @@ func NewMock(dsn ...string) (*SqliteRepository, *sql.DB) {
 	if err != nil {
 		panic(err)
 	}
-	return repo, db
+	return &TestRepository{SqliteRepository: *repo, t: t}, db
 }
 
 func mustWithUsers(db *sql.DB, userIDs ...string) {
@@ -193,4 +207,17 @@ func mustWithUsers(db *sql.DB, userIDs ...string) {
 			panic(err)
 		}
 	}
+}
+
+// A SqliteRepository, wrapped with utility funcs
+type TestRepository struct {
+	SqliteRepository
+	t *testing.T
+}
+
+func (r *TestRepository) MustSave(cart *Cart) *TestRepository {
+	if err := r.Save(cart); err != nil {
+		r.t.Fatalf("Save() error: %v", err)
+	}
+	return r
 }

@@ -29,3 +29,14 @@ http  'https://www.clasohlson.com/no/cocheckout/getCartDataOnReload?variantProdu
 Feedback:
 - send link to list doesn't work as expected
 - auto-generate list every Sunday, with title 'Week X' where X is the week number.
+
+# Editing fields
+Looks like we can use [contenteditable](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/contenteditable), so we'll do `<h3 contenteditable="true">Title</h3>`. Not how this affects accessibility.
+
+
+# What I've learned
+- sqlite doesn't enforce foreign key constraints by defualt. Need `PRAGMA foreign_keys = ON;` to enable that.
+- Meta viewport: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/meta/name/viewport. Lies under `<html`, not under `<head>`. 
+- css: padding 1 2 3 4 means top right bottom left.
+- css: padding 1 2 means top/bottom and left/right.
+- css: border-radius 1 2 3 4 means top-left, top-right, bottom-right, bottom-left.

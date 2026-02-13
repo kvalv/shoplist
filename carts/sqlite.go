@@ -1,12 +1,13 @@
 package carts
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"time"
 
+	"github.com/georgysavva/scany/v2/sqlscan"
 	"github.com/kvalv/shoplist/stores/clasohlson"
-	gonanoid "github.com/matoous/go-nanoid/v2"
 )
 
 type SqliteRepository struct {
@@ -19,7 +20,7 @@ func NewRepository(db *sql.DB) (*SqliteRepository, error) {
 
 func New() *Cart {
 	return &Cart{
-		ID:        gonanoid.Must(8),
+		ID:        newID(),
 		CreatedAt: time.Now(),
 	}
 }
@@ -187,6 +188,27 @@ func (r *SqliteRepository) loadClasCandidates(item *Item) error {
 		item.Clas.Candidates = append(item.Clas.Candidates, c)
 	}
 	return nil
+}
+
+func (r *SqliteRepository) SelectClasOhlsonItem(itemID string, i int) error {
+
+	var res struct {
+		Count int
+	}
+
+	if err := sqlscan.Get(
+		context.TODO(),
+		r.db,
+		&res, `select count(*) from clas_candidates where item_id = ?`); err != nil {
+		return fmt.Errorf("query error: %w", err)
+	}
+
+	if res.Count < i+1 {
+		return fmt.Errorf("invalid index %d for item %s with only %d candidates", i, itemID, res.Count)
+	}
+
+	panic("TODO")
+
 }
 
 func (r *SqliteRepository) Collaborators(cartID string) ([]string, error) {

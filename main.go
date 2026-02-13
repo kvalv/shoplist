@@ -12,10 +12,12 @@ import (
 
 	"github.com/a-h/templ"
 	"github.com/go-chi/chi/v5"
+	"github.com/lmittmann/tint"
 	"github.com/kvalv/shoplist/auth"
 	"github.com/kvalv/shoplist/carts"
 	"github.com/kvalv/shoplist/commands"
 	"github.com/kvalv/shoplist/cron"
+	"github.com/kvalv/shoplist/devtools"
 	"github.com/kvalv/shoplist/events"
 	"github.com/kvalv/shoplist/migrations"
 	"github.com/kvalv/shoplist/views"
@@ -106,10 +108,31 @@ func run(ctx context.Context, log *slog.Logger) error {
 		}
 	}()
 
-	// Initial render
 	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		carts, _ := repo.List(5)
-		templ.Handler(views.Page(carts[0], carts)).ServeHTTP(w, r)
+		var curr *carts.Cart
+		carts, err := repo.List(5)
+		if err != nil {
+			log.Error("failed to fetch latest cart", "error", err)
+		}
+		if len(carts) > 0 {
+			curr = carts[0]
+		}
+		log.Info("redirecting to latest cart", "cartID", curr.ID)
+		// redirect to latest
+		w.Header().Set("Location", "/"+curr.ID)
+		w.WriteHeader(http.StatusFound)
+	})
+
+	// Initial render
+	r.HandleFunc("/{id}", func(w http.ResponseWriter, r *http.Request) {
+		cart, err := repo.Cart(chi.URLParam(r, "id"))
+		if err != nil {
+			// favicon.ico
+			log.Error("failed to fetch cart", "error", err, "id", chi.URLParam(r, "id"))
+			return
+			panic(fmt.Errorf("failed to fetch cart: %w id=%q", err, chi.URLParam(r, "id")))
+		}
+		templ.Handler(views.Page(cart, nil)).ServeHTTP(w, r)
 	})
 
 	r.HandleFunc("/static/", func(w http.ResponseWriter, r *http.Request) {
@@ -127,11 +150,12 @@ func run(ctx context.Context, log *slog.Logger) error {
 		defer sub.Close()
 
 		// send initial render
+		var first *carts.Cart
 		carts, _ := repo.List(5)
-		if len(carts) == 0 {
-			panic("no latest cart")
+		if len(carts) > 0 {
+			first = carts[0]
 		}
-		sse.PatchElementTempl(views.Page(carts[0], carts))
+		sse.PatchElementTempl(views.Page(first, carts))
 
 		done := r.Context().Done()
 		for {
@@ -149,11 +173,19 @@ func run(ctx context.Context, log *slog.Logger) error {
 		}
 	})
 
+	go func() {
+		log.Info("watching styles.css for changes...")
+		for range devtools.WatchFile(ctx, "static/styles.css") {
+			log.Info("styles.css changed, broadcasting render event")
+		}
+	}()
+
 	r.HandleFunc("/add", commands.NewAddItem(repo, bus, log))
 	r.HandleFunc("/check", commands.NewCheckItem(repo, bus, log))
 	r.HandleFunc("/set-name", commands.NewSetName(repo, bus, log))
 	r.HandleFunc("/set-store", commands.NewSetStore(repo, bus, log))
 	r.HandleFunc("/switch-cart", commands.NewSwitchCart(repo, bus, log))
+	r.HandleFunc("/select-clas-item", commands.NewSelectClasItem(repo, bus, log))
 
 	log.Info("starting server", "addr", server.Addr)
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -164,16 +196,8 @@ func run(ctx context.Context, log *slog.Logger) error {
 }
 
 func logger(prefix string) *slog.Logger {
-	return slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelInfo,
-		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
-			if a.Key == slog.TimeKey {
-				return slog.String(slog.TimeKey, a.Value.Time().Format("15:04:05"))
-			}
-			if a.Key == slog.LevelKey && a.Value.Any() == slog.LevelInfo {
-				return slog.Attr{}
-			}
-			return a
-		},
+	return slog.New(tint.NewHandler(os.Stdout, &tint.Options{
+		Level:      slog.LevelInfo,
+		TimeFormat: "15:04:05",
 	})).With("srv", prefix)
 }

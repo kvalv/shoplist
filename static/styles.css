@@ -25,3 +25,195 @@ h3 {
   padding-bottom: 0.5rem;
   margin-bottom: 1rem;
 }
+
+.flex {
+  display: flex;
+  flex-direction: row;
+}
+.flex-col {
+  display: flex;
+  flex-direction: column;
+}
+.gap-half {
+  gap: 4px;
+}
+.gap-1 {
+  gap: 8px;
+}
+.gap-2 {
+  gap: 16px;
+}
+.gap-3 {
+  gap: 24px;
+}
+.gap-4 {
+  gap: 32px;
+}
+.text-xs {
+  font-size: 0.75rem;
+}
+.text-sm {
+  font-size: 0.875rem;
+}
+.text-md {
+  font-size: 1rem;
+}
+.text-lg {
+  font-size: 1.125rem;
+}
+.fw-300 {
+  font-weight: 300;
+}
+.fw-400 {
+  font-weight: 400;
+}
+.fw-500 {
+  font-weight: 500;
+}
+.items-center {
+  align-items: center;
+}
+
+/* A circle */
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 100%;
+  background-color: var(--pico-del-color);
+  display: inline-block;
+}
+
+.bg-primary {
+  background-color: var(--pico-primary-background);
+}
+.bg-secondary {
+  background-color: var(--pico-secondary-background);
+}
+.bg-contrast {
+  background-color: var(--pico-contrast-background);
+}
+.bg-success {
+  background-color: #2e8b57;
+}
+.bg-error {
+  background-color: #b54a4a;
+}
+.bg-warning {
+  background-color: #d4a017;
+}
+.text-primary {
+  color: var(--pico-primary);
+}
+.text-secondary {
+  color: var(--pico-secondary);
+}
+.text-contrast {
+  color: var(--pico-contrast);
+}
+.text-success {
+  color: #2e8b57;
+}
+.text-error {
+  color: #b54a4a;
+}
+.text-warning {
+  color: #d4a017;
+}
+
+.border {
+  border: 1px solid var(--pico-muted-border-color);
+}
+.border-success {
+  border-color: #2e8b57;
+}
+.border-error {
+  border-color: #b54a4a;
+}
+
+.rounded-sm {
+  border-radius: 4px;
+}
+.rounded-md {
+  border-radius: 8px;
+}
+.rounded-lg {
+  border-radius: 12px;
+}
+
+.p-half {
+  padding: 4px;
+}
+.p-1 {
+  padding: 8px;
+}
+.p-2 {
+  padding: 16px;
+}
+.p-3 {
+  padding: 24px;
+}
+.p-4 {
+  padding: 32px;
+}
+
+.pl-half {
+  padding-left: 4px;
+}
+.pl-1 {
+  padding-left: 8px;
+}
+.pl-2 {
+  padding-left: 16px;
+}
+.pl-3 {
+  padding-left: 24px;
+}
+.pl-4 {
+  padding-left: 32px;
+}
+
+.pb-half {
+  padding-bottom: 4px;
+}
+.pb-1 {
+  padding-bottom: 8px;
+}
+.pb-2 {
+  padding-bottom: 16px;
+}
+.pb-3 {
+  padding-bottom: 24px;
+}
+.pb-4 {
+  padding-bottom: 32px;
+}
+
+.shadow-sm {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+.shadow-md {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+.shadow-lg {
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.15);
+}
+
+.rounded-box {
+  border-radius: 100%;
+}
+
+.form-add {
+  display: grid;
+  grid-template-columns: 4fr 1fr;
+  column-gap: 8px;
+  /* color: red; */
+  /* background-color: red; */
+}
+
+.item-plan-clas {
+  display: flex;
+  flex-direction: row;
+  /* first elem takes max space, second takes only the space it needs */
+  justify-content: space-between;
+  align-items: center;
+}
