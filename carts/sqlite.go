@@ -118,7 +118,7 @@ func (r *SqliteRepository) Cart(ID string) (*Cart, error) {
 }
 
 func (r *SqliteRepository) loadCartItems(cart *Cart) (*Cart, error) {
-	if err := many(&cart.Items, r.db, `SELECT id, text, checked, created_at, updated_at, clas_chosen, created_by, updated_by FROM items WHERE cart_id = ? ORDER BY checked ASC, updated_at DESC`, cart.ID); err != nil {
+	if err := many(&cart.Items, r.db, `SELECT id, text, checked, created_at, updated_at, clas_chosen, created_by, updated_by FROM items WHERE cart_id = ? ORDER BY created_at ASC`, cart.ID); err != nil {
 		return nil, err
 	}
 
