@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"html/template"
 	"log/slog"
+	"net/url"
 	"strings"
 
 	"github.com/kvalv/shoplist/carts"
 	"github.com/kvalv/shoplist/events"
 	"github.com/kvalv/shoplist/llm"
+	"github.com/kvalv/shoplist/recipe"
 	"github.com/kvalv/shoplist/stores"
 	"github.com/kvalv/shoplist/stores/clasohlson"
 )
@@ -54,7 +56,7 @@ func RunBackgroundWorker(
 					continue
 				}
 
-				tools := chatTools(repo, bus, cart, log)
+				tools := chatTools(ctx, repo, bus, cart, log)
 				var resp struct {
 					Answer string `json:"answer" desc:"your reply to the user. Leave empty if the message is not addressed to you."`
 				}
@@ -132,6 +134,7 @@ func RunBackgroundWorker(
 }
 
 func chatTools(
+	ctx context.Context,
 	repo *carts.SqliteRepository,
 	bus *events.Bus,
 	cart *carts.Cart,
@@ -165,6 +168,26 @@ func chatTools(
 				}
 			}
 			return fmt.Sprintf("item %q not found in the list", args.Text), nil
+		}),
+
+		llm.Func("rename_item", "Rename an item on the shopping list", func(args struct {
+			OldName string `json:"old_name" desc:"the current item name"`
+			NewName string `json:"new_name" desc:"the new name for the item"`
+		}) (string, error) {
+			lower := strings.ToLower(args.OldName)
+			for _, item := range cart.Items {
+				if strings.ToLower(item.Text) == lower {
+					old := item.Text
+					item.Text = args.NewName
+					if err := repo.Save(cart); err != nil {
+						return "", err
+					}
+					log.Info("Assistant renamed item", "old", old, "new", args.NewName)
+					bus.Publish(events.CartUpdated{CartID: cart.ID})
+					return fmt.Sprintf("renamed %q to %q", old, args.NewName), nil
+				}
+			}
+			return fmt.Sprintf("item %q not found in the list", args.OldName), nil
 		}),
 
 		llm.Func("toggle_item", "Check or uncheck an item on the shopping list by name", func(args struct {
@@ -205,6 +228,28 @@ func chatTools(
 			}
 			log.Info("Assistant listed items", "count", len(items))
 			return items, nil
+		}),
+
+		llm.Func("parse_recipe", "Parse ingredients from a recipe URL and add them to the shopping list", func(args struct {
+			URL string `json:"url" desc:"the recipe URL to parse ingredients from"`
+		}) ([]string, error) {
+			u, err := url.Parse(args.URL)
+			if err != nil {
+				return nil, fmt.Errorf("invalid URL: %w", err)
+			}
+			ingredients, err := recipe.Parse(ctx, u)
+			if err != nil {
+				return nil, err
+			}
+			for _, text := range ingredients {
+				item := cart.Add(text, "assistant")
+				log.Info("Assistant added ingredient", "text", text, "itemID", item.ID)
+			}
+			if err := repo.Save(cart); err != nil {
+				return nil, err
+			}
+			bus.Publish(events.CartUpdated{CartID: cart.ID})
+			return ingredients, nil
 		}),
 	}
 }
