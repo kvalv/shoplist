@@ -17,6 +17,13 @@ func itemText(item *carts.Item) string {
 	return item.Text
 }
 
+func ternary(cond bool, a, b string) string {
+	if cond {
+		return a
+	}
+	return b
+}
+
 templ cartList(items []*carts.Item) {
 	<div data-show="!$shopping" class="flex-col gap-1">
 		for _, item := range items {
@@ -52,7 +59,7 @@ templ Page(current *carts.Cart, choices []*carts.Cart, messages []*carts.Message
 			data-init="@get('/render')"
 			data-signals:current={ q(current.ID) }
 			data-signals:shopping__ifmissing={ fmt.Sprintf("%t", shopping) }
-			data-signals:chatMode__ifmissing="'add'"
+			data-signals:chatMode__ifmissing={ ternary(shopping, "'shop'", "'list'") }
 			class="container"
 			style="min-height: 100vh; display: flex; flex-direction: column;"
 		>
@@ -67,14 +74,6 @@ templ Page(current *carts.Cart, choices []*carts.Cart, messages []*carts.Message
 						<option selected?={ current.TargetStore == stores.Kiwi } value="0">Kiwi</option>
 						<option value="1" selected?={ current.TargetStore == stores.ClasOhlson }>Clas Ohlson</option>
 					</select>
-					<label class="shopping-toggle">
-						<input
-							type="checkbox"
-							role="switch"
-							data-bind="shopping"
-							data-on:change="const u = new URL(window.location); if ($shopping) { u.searchParams.set('shopping', 'true') } else { u.searchParams.delete('shopping') }; history.replaceState(null, '', u)"
-						/>
-					</label>
 				</div>
 				// Top add-item form removed — now in chat panel footer
 				<div data-show="$chatMode !== 'chat'">

@@ -38,21 +38,26 @@ templ ChatInput() {
 	<div class="chat-toggle mb-1">
 		<span
 			class="chat-toggle-item pointer flex items-center gap-half"
-			data-on:click="$chatMode = 'add'"
-			data-class:chat-toggle-active="$chatMode !== 'chat'"
-		>@IconPlus() Add</span>
+			data-on:click="$chatMode = 'list'; $shopping = false; const u = new URL(window.location); u.searchParams.delete('shopping'); history.replaceState(null, '', u)"
+			data-class:chat-toggle-active="$chatMode === 'list'"
+		>@IconList() List</span>
 		<span
 			class="chat-toggle-item pointer flex items-center gap-half"
 			data-on:click="$chatMode = 'chat'"
 			data-class:chat-toggle-active="$chatMode === 'chat'"
 		>@IconChatBubble() Chat</span>
+		<span
+			class="chat-toggle-item pointer flex items-center gap-half"
+			data-on:click="$chatMode = 'shop'; $shopping = true; const u = new URL(window.location); u.searchParams.set('shopping', 'true'); history.replaceState(null, '', u)"
+			data-class:chat-toggle-active="$chatMode === 'shop'"
+		>@IconShoppingCart() Shop</span>
 	</div>
 	<form class="form-chat flex gap-1" data-on:submit="@post('/add')">
 		<input
 			data-bind="msg"
 			type="text"
 			autocomplete="off"
-			data-attr:placeholder="$chatMode === 'add' ? 'Add item' : 'Message...'"
+			data-attr:placeholder="$chatMode === 'list' ? 'Add item' : 'Message...'"
 		/>
 		<button class="btn-icon" data-attr:disabled="$msg === ''" type="submit">
 			@IconPlus()
