@@ -1,8 +1,11 @@
+html, body {
+  background-color: #faf8f5;
+}
+
 body {
   max-width: 600px;
   margin: 0 auto;
   padding: 0 !important;
-  /* background-color: #fbf1c7; */
   /* font-size: 14px; */
 }
 li {
@@ -285,7 +288,7 @@ svg {
 .chat-panel {
   position: sticky;
   bottom: 0;
-  border: 1px solid var(--pico-muted-border-color);
+  border: 1px solid #ffffff;
   border-radius: 8px 8px 0 0;
   padding: 0;
   margin-bottom: 0 !important;
@@ -356,11 +359,25 @@ svg {
 }
 
 .form-chat input {
-  width: calc(100% - 40px);
+  flex: 1;
+  min-width: 0;
+  height: 32px;
   font-size: 0.875rem;
   padding: 4px 8px;
   margin-bottom: 0;
+  background-color: #f2efe8;
 }
+
+.form-chat button {
+  width: auto;
+  padding: 6px;
+  border: 1px solid #2e8b57;
+  color: #2e8b57;
+  border-radius: 6px;
+  background: none;
+  box-shadow: none;
+}
+
 
 .flex-1 {
   flex: 1;

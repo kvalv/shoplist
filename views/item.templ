@@ -4,7 +4,7 @@ import "github.com/kvalv/shoplist/carts"
 import "github.com/kvalv/shoplist/stores"
 
 templ CartItem(item *carts.Item, isShopping bool, s stores.Store) {
-	<div id={ f("item-%s", item.ID) } class="border rounded-sm shadow-sm p-1">
+	<div id={ f("item-%s", item.ID) } class="border rounded-sm shadow-sm p-1" style="background:#fff">
 		if isShopping {
 			@ShoppingItem(item, s)
 		} else {

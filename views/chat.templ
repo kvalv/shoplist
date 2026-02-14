@@ -59,25 +59,20 @@ templ ChatInput() {
 			data-attr:placeholder="$chatMode === 'add' ? 'Add item' : 'Message...'"
 		/>
 		<button class="btn-icon" data-attr:disabled="$msg === ''" type="submit">
-			<span data-show="$chatMode === 'add'">
-				@IconPlus()
-			</span>
-			<span data-show="$chatMode === 'chat'">
-				@IconPaperPlane()
-			</span>
+			@IconPlus()
 		</button>
 	</form>
 }
 
 templ Chat(messages []*carts.Message, cart *carts.Cart) {
 	<details open class="chat-panel" data-signals:chatMode__ifmissing="'add'">
-		<summary class="bg-primary text-inverse text-sm fw-600 p-1 shadow-md">Chat</summary>
+		<summary class="text-sm fw-600 p-1 shadow-md">Chat</summary>
 		<div class="chat-messages flex-col gap-half" data-init="el.querySelector(':scope > :last-child')?.scrollIntoView({ behavior: 'instant', block: 'start' }); new MutationObserver(() => el.querySelector(':scope > :last-child')?.scrollIntoView({ behavior: 'smooth', block: 'start' })).observe(el, { childList: true })">
 			for _, msg := range messages {
 				@ChatMessage(msg, cart)
 			}
 		</div>
-		<div class="bg-primary p-1 shadow-sm">
+		<div class="p-1 shadow-sm">
 			@ChatInput()
 		</div>
 	</details>

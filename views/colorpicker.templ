@@ -1,0 +1,36 @@
+package views
+
+templ ColorPicker() {
+	<div id="color-picker" style="display:flex;flex-wrap:wrap;gap:6px;padding:8px 0;">
+		for _, c := range colorChoices {
+			<div
+				data-color={ c }
+				style={ "width:32px;height:32px;border-radius:6px;cursor:pointer;border:2px solid transparent;background:" + c }
+			></div>
+		}
+	</div>
+	<script>
+		document.getElementById('color-picker').addEventListener('click', function(e) {
+			var el = e.target;
+			var c = el.getAttribute('data-color');
+			if (!c) return;
+			this.querySelectorAll('div').forEach(function(d) { d.style.border = '2px solid transparent'; });
+			el.style.border = '2px solid #333';
+			document.querySelectorAll('.form-chat input').forEach(function(inp) { inp.style.backgroundColor = c; });
+			console.log(c);
+		});
+	</script>
+}
+
+var colorChoices = []string{
+	// close to #faf8f5 (page bg) — subtle variants
+	"#f5f0e8", "#f2efe8", "#f0ede6", "#edeae3",
+	"#eae6de", "#e8e4dc", "#e5e1d8", "#e2ded5",
+	// warm grays
+	"#f2f0ed", "#efece8", "#ece8e3", "#e8e5e0",
+	"#e4e0da", "#ddd9d3", "#d6d2cb",
+	// cooler tones
+	"#f0f0ee", "#ebebea", "#e6e6e4", "#e0e0de",
+	// solarized-ish
+	"#fdf6e3", "#eee8d5", "#e8dfd0",
+}
