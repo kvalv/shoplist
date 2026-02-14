@@ -288,24 +288,16 @@ svg {
 .chat-panel {
   position: sticky;
   bottom: 0;
-  border: 1px solid #ffffff;
   border-radius: 8px 8px 0 0;
-  padding: 0;
   margin-bottom: 0 !important;
   box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.06);
   background-color: var(--pico-background-color);
   z-index: 10;
 }
 
-.chat-panel > summary {
-  border-radius: 8px 8px 0 0;
-  cursor: pointer;
-}
-
-.chat-messages {
-  max-height: 200px;
+.chat-messages-main {
   overflow-y: auto;
-  padding: 8px 12px 0;
+  padding: 8px 0;
 }
 
 .chat-bubble {
@@ -387,6 +379,10 @@ svg {
   margin-bottom: 4px;
 }
 
+.mb-1 {
+  margin-bottom: 8px;
+}
+
 .mb-0 {
   margin-bottom: 0;
 }
@@ -402,6 +398,11 @@ svg {
 .px-half {
   padding-left: 4px;
   padding-right: 4px;
+}
+
+.px-1 {
+  padding-left: 8px;
+  padding-right: 8px;
 }
 
 .py-quarter {
@@ -431,4 +432,31 @@ svg {
   /* first elem takes max space, second takes only the space it needs */
   justify-content: space-between;
   align-items: center;
+}
+
+.chat-toggle {
+  display: inline-flex;
+  background-color: var(--pico-muted-border-color);
+  border-radius: 9999px;
+  padding: 4px;
+}
+
+.chat-toggle-item {
+  height: 24px;
+  line-height: 24px;
+  padding: 0 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 9999px;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.chat-toggle-active {
+  background-color: var(--pico-primary-background);
+  color: var(--pico-primary-inverse);
+}
+
+.chat-toggle-item svg {
+  width: 16px;
+  height: 16px;
 }

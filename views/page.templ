@@ -52,6 +52,7 @@ templ Page(current *carts.Cart, choices []*carts.Cart, messages []*carts.Message
 			data-init="@get('/render')"
 			data-signals:current={ q(current.ID) }
 			data-signals:shopping__ifmissing={ fmt.Sprintf("%t", shopping) }
+			data-signals:chatMode__ifmissing="'add'"
 			class="container"
 			style="min-height: 100vh; display: flex; flex-direction: column;"
 		>
@@ -76,9 +77,16 @@ templ Page(current *carts.Cart, choices []*carts.Cart, messages []*carts.Message
 					</label>
 				</div>
 				// Top add-item form removed — now in chat panel footer
-				@cartList(current.Items)
+				<div data-show="$chatMode !== 'chat'">
+					@cartList(current.Items)
+				</div>
+				<div data-show="$chatMode === 'chat'" class="chat-messages-main flex-col gap-half" data-init="el.querySelector(':scope > :last-child')?.scrollIntoView({ behavior: 'instant', block: 'start' }); new MutationObserver(() => el.querySelector(':scope > :last-child')?.scrollIntoView({ behavior: 'smooth', block: 'start' })).observe(el, { childList: true })">
+					for _, msg := range messages {
+						@ChatMessage(msg, current)
+					}
+				</div>
 			</main>
-			@Chat(messages, current)
+			@Chat()
 		</body>
 	</html>
 }

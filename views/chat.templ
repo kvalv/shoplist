@@ -35,21 +35,17 @@ func derefOr(p *string, fallback string) string {
 }
 
 templ ChatInput() {
-	<div class="flex gap-quarter mb-half">
+	<div class="chat-toggle mb-1">
 		<span
-			class="text-2xs fw-600 lh-1 px-half py-quarter rounded-full pointer"
+			class="chat-toggle-item pointer flex items-center gap-half"
 			data-on:click="$chatMode = 'add'"
-			data-class:bg-primary="$chatMode === 'add'"
-			data-class:text-inverse="$chatMode === 'add'"
-			data-class:bg-muted="$chatMode !== 'add'"
-		>+ Add</span>
+			data-class:chat-toggle-active="$chatMode !== 'chat'"
+		>@IconPlus() Add</span>
 		<span
-			class="text-2xs fw-600 lh-1 px-half py-quarter rounded-full pointer"
+			class="chat-toggle-item pointer flex items-center gap-half"
 			data-on:click="$chatMode = 'chat'"
-			data-class:bg-primary="$chatMode === 'chat'"
-			data-class:text-inverse="$chatMode === 'chat'"
-			data-class:bg-muted="$chatMode !== 'chat'"
-		>Chat</span>
+			data-class:chat-toggle-active="$chatMode === 'chat'"
+		>@IconChatBubble() Chat</span>
 	</div>
 	<form class="form-chat flex gap-1" data-on:submit="@post('/add')">
 		<input
@@ -64,16 +60,8 @@ templ ChatInput() {
 	</form>
 }
 
-templ Chat(messages []*carts.Message, cart *carts.Cart) {
-	<details open class="chat-panel" data-signals:chatMode__ifmissing="'add'">
-		<summary class="text-sm fw-600 p-1 shadow-md">Chat</summary>
-		<div class="chat-messages flex-col gap-half" data-init="el.querySelector(':scope > :last-child')?.scrollIntoView({ behavior: 'instant', block: 'start' }); new MutationObserver(() => el.querySelector(':scope > :last-child')?.scrollIntoView({ behavior: 'smooth', block: 'start' })).observe(el, { childList: true })">
-			for _, msg := range messages {
-				@ChatMessage(msg, cart)
-			}
-		</div>
-		<div class="p-1 shadow-sm">
-			@ChatInput()
-		</div>
-	</details>
+templ Chat() {
+	<div class="chat-panel p-1">
+		@ChatInput()
+	</div>
 }
