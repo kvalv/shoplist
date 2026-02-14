@@ -320,6 +320,28 @@ svg {
   color: var(--pico-secondary);
 }
 
+.chat-chip {
+  display: inline-block;
+  background-color: rgba(46, 139, 87, 0.12);
+  color: #2e8b57;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.chat-chip:hover {
+  background-color: rgba(46, 139, 87, 0.22);
+  color: #2e8b57;
+}
+
+[id^="item-"]:target {
+  outline: 2px solid #2e8b57;
+  outline-offset: 2px;
+}
+
 .form-chat {
   align-items: center;
 }

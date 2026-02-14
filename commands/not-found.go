@@ -7,10 +7,9 @@ import (
 	"github.com/kvalv/shoplist/carts"
 	"github.com/kvalv/shoplist/events"
 	"github.com/kvalv/shoplist/logger"
-	"github.com/starfederation/datastar-go/datastar"
 )
 
-func NewAddMessage(
+func NewNotFound(
 	repo *carts.SqliteRepository,
 	bus *events.Bus,
 ) http.HandlerFunc {
@@ -18,16 +17,31 @@ func NewAddMessage(
 		log := logger.FromRequest(r)
 		signals := SignalsFromRequest(r)
 		claims := auth.ClaimsFromRequest(r)
+		itemID := r.URL.Query().Get("id")
 
-		msg := carts.NewMessage(signals.Current, signals.ChatMsg).WithUser(claims.UserID)
-		log.Info("/add-message", "text", signals.ChatMsg, "user", claims.UserID)
+		cart, err := repo.Cart(signals.Current)
+		if err != nil {
+			log.Error("failed to get cart", "error", err)
+			return
+		}
 
+		item := cart.Get(itemID)
+		if item == nil {
+			log.Error("item not found", "itemID", itemID)
+			return
+		}
+
+		name := item.Text
+		if selected := item.Clas.Selected(); selected != nil {
+			name = selected.Name
+		}
+
+		msg := carts.NewMessage(signals.Current, "Fant ikke").WithUser(claims.UserID).WithItem(itemID)
 		if err := repo.AddMessage(msg); err != nil {
 			log.Error("failed to add message", "error", err)
 			return
 		}
+		log.Info("/not-found", "item", name, "user", claims.UserID)
 		bus.Publish(events.CartUpdated{CartID: signals.Current})
-		bus.Publish(events.ChatAdded{CartID: signals.Current, MessageID: msg.ID})
-		datastar.NewSSE(w, r).PatchSignals([]byte(`{"chatMsg": ""}`))
 	}
 }

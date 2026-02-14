@@ -103,7 +103,7 @@ templ Page(current *carts.Cart, choices []*carts.Cart, messages []*carts.Message
 				</form>
 				@cartList(current.Items)
 			</main>
-			@Chat(messages)
+			@Chat(messages, current)
 		</body>
 	</html>
 }

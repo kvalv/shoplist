@@ -154,16 +154,29 @@ func run(ctx context.Context, log *slog.Logger) error {
 		defer sub.Close()
 
 		// send initial render
-		var first *carts.Cart
+		var activeID string
+		if sig := commands.TrySignalsFromRequest(r); sig != nil {
+			activeID = sig.Current
+		}
+
 		cartList, _ := repo.List(5)
-		if len(cartList) > 0 {
-			first = cartList[0]
+		if activeID == "" && len(cartList) > 0 {
+			activeID = cartList[0].ID
 		}
-		var msgs []*carts.Message
-		if first != nil {
-			msgs, _ = repo.Messages(first.ID)
+
+		renderActive := func() {
+			cartList, _ := repo.List(5)
+			active, _ := repo.Cart(activeID)
+			if active == nil && len(cartList) > 0 {
+				active = cartList[0]
+			}
+			var msgs []*carts.Message
+			if active != nil {
+				msgs, _ = repo.Messages(active.ID)
+			}
+			sse.PatchElementTempl(views.Page(active, cartList, msgs))
 		}
-		sse.PatchElementTempl(views.Page(first, cartList, msgs))
+		renderActive()
 
 		done := r.Context().Done()
 		for {
@@ -171,13 +184,17 @@ func run(ctx context.Context, log *slog.Logger) error {
 			case <-done:
 				return
 			case event := <-sub.Ch:
-				cartList, _ := repo.List(5)
+				switch ev := event.(type) {
+				case events.CartSwitched:
+					activeID = ev.CartID
+				case events.CartCreated:
+					activeID = ev.CartID
+				}
 				log.Info("render fat morph",
 					"event", fmt.Sprintf("%T", event),
-					"cartID", cartList[0].ID,
+					"cartID", activeID,
 				)
-				msgs, _ := repo.Messages(cartList[0].ID)
-				sse.PatchElementTempl(views.Page(cartList[0], cartList, msgs))
+				renderActive()
 			}
 		}
 	})
@@ -196,6 +213,7 @@ func run(ctx context.Context, log *slog.Logger) error {
 	r.HandleFunc("/switch-cart", commands.NewSwitchCart(repo, bus))
 	r.HandleFunc("/select-clas-item", commands.NewSelectClasItem(repo, bus))
 	r.HandleFunc("/delete", commands.NewDeleteItem(repo, bus))
+	r.HandleFunc("/not-found", commands.NewNotFound(repo, bus))
 	r.HandleFunc("/add-message", commands.NewAddMessage(repo, bus))
 
 	log.Info("starting server", "addr", server.Addr)

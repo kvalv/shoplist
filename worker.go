@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"html/template"
 	"log/slog"
 	"strings"
 
@@ -40,15 +41,16 @@ func RunBackgroundWorker(
 
 			case events.ChatAdded:
 				log.Info("ChatAdded", "cartID", ev.CartID, "messageID", ev.MessageID)
-				msg, err := repo.Message(ev.MessageID)
-				if err != nil {
-					log.Error("Failed to get message", "error", err)
-					continue
-				}
-
 				cart, err := repo.Cart(ev.CartID)
 				if err != nil {
 					log.Error("Failed to get cart", "error", err)
+					continue
+				}
+
+				messages, _ := repo.Messages(ev.CartID)
+				var prompt strings.Builder
+				if err := chatPromptTpl.Execute(&prompt, messages); err != nil {
+					log.Error("Failed to render chat prompt", "error", err)
 					continue
 				}
 
@@ -56,12 +58,7 @@ func RunBackgroundWorker(
 				var resp struct {
 					Answer string `json:"answer" desc:"your reply to the user. Leave empty if the message is not addressed to you."`
 				}
-				prompt := fmt.Sprintf(`You are a helpful shopping list assistant. You live in the chat of a shared shopping list app.
-Users chat with each other here. Only respond if the message is clearly addressed to you (the assistant) or is a request you can help with (adding/removing items, answering questions about the list).
-If it's just users chatting with each other, set answer to "" and do nothing.
-
-Current message: %s`, msg.Text)
-				if err := llm.StructuredQuery(ctx, prompt, &resp, llm.Options{Tools: tools}); err != nil {
+				if err := llm.StructuredQuery(ctx, prompt.String(), &resp, llm.Options{Tools: tools}); err != nil {
 					log.Error("LLM query failed", "error", err)
 					continue
 				}
@@ -189,3 +186,18 @@ func chatTools(
 		}),
 	}
 }
+
+var chatPromptTpl = template.Must(template.New("").Funcs(template.FuncMap{
+	"name": func(m *carts.Message) string {
+		if m.UserID != nil {
+			return *m.UserID
+		}
+		return string(m.Role)
+	},
+}).Parse(`You are a helpful shopping list assistant. You live in the chat of a shared shopping list app.
+Users chat with each other here. Only respond if the message is clearly addressed to you (the assistant) or is a request you can help with (adding/removing items, answering questions about the list).
+If it's just users chatting with each other, set answer to "" and do nothing.
+
+Chat history:
+{{ range . }}[{{ .CreatedAt.Format "15:04" }}] {{ name . }}: {{ .Text }}
+{{ end }}`))

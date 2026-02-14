@@ -2,10 +2,28 @@ package views
 
 import "github.com/kvalv/shoplist/carts"
 
-templ ChatMessage(msg *carts.Message) {
+func itemName(cart *carts.Cart, itemID *string) string {
+	if cart == nil || itemID == nil {
+		return ""
+	}
+	item := cart.Get(*itemID)
+	if item == nil {
+		return "@" + *itemID
+	}
+	if selected := item.Clas.Selected(); selected != nil {
+		return "@" + selected.Name
+	}
+	return "@" + item.Text
+}
+
+templ ChatMessage(msg *carts.Message, cart *carts.Cart) {
 	<div class="chat-bubble">
 		<span class="chat-name"><span class="fw-600">{ derefOr(msg.UserID, string(msg.Role)) }</span> <span class="fw-300">{ msg.CreatedAt.Format("15:04") }</span></span>
-		<span>{ msg.Text }</span>
+		if msg.ItemID != nil {
+			<span>{ msg.Text } <a href={ templ.SafeURL("#item-" + *msg.ItemID) } class="chat-chip">{ itemName(cart, msg.ItemID) }</a></span>
+		} else {
+			<span>{ msg.Text }</span>
+		}
 	</div>
 }
 
@@ -30,12 +48,12 @@ templ ChatInput() {
 	</form>
 }
 
-templ Chat(messages []*carts.Message) {
+templ Chat(messages []*carts.Message, cart *carts.Cart) {
 	<details open class="chat-panel">
 		<summary class="bg-primary text-inverse text-sm fw-600 p-1 shadow-md">Chat</summary>
 		<div class="chat-messages flex-col gap-half">
 			for _, msg := range messages {
-				@ChatMessage(msg)
+				@ChatMessage(msg, cart)
 			}
 		</div>
 		<div class="bg-primary p-1 shadow-sm">

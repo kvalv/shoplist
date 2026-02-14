@@ -4,7 +4,7 @@ import "github.com/kvalv/shoplist/carts"
 import "github.com/kvalv/shoplist/stores"
 
 templ CartItem(item *carts.Item, isShopping bool, s stores.Store) {
-	<div class="border rounded-sm shadow-sm p-1">
+	<div id={ f("item-%s", item.ID) } class="border rounded-sm shadow-sm p-1">
 		switch s {
 			case stores.ClasOhlson:
 				@ClasOhlsonItem(item, isShopping)
@@ -57,6 +57,14 @@ templ ClasOhlsonItem(item *carts.Item, isShopping bool) {
 				@IconDotsThreeVertical()
 			</summary>
 			<ul dir="rtl">
+				<li>
+					<a
+						href="#"
+						data-on:click__prevent={ f("@post('/not-found?id=%s')", item.ID) }
+					>
+						Fant ikke
+					</a>
+				</li>
 				<li>
 					<a
 						href="#"

@@ -21,3 +21,12 @@ func SignalsFromRequest(r *http.Request) *signals {
 	}
 	return &s
 }
+
+// TrySignalsFromRequest returns nil instead of panicking on error.
+func TrySignalsFromRequest(r *http.Request) *signals {
+	var s signals
+	if err := datastar.ReadSignals(r, &s); err != nil {
+		return nil
+	}
+	return &s
+}
