@@ -32,12 +32,14 @@ templ ChatInput() {
 
 templ Chat(messages []*carts.Message) {
 	<details open class="chat-panel">
-		<summary>Chat</summary>
+		<summary class="bg-primary text-inverse text-sm fw-600 p-1 shadow-md">Chat</summary>
 		<div class="chat-messages flex-col gap-half">
 			for _, msg := range messages {
 				@ChatMessage(msg)
 			}
 		</div>
-		@ChatInput()
+		<div class="bg-primary p-1 shadow-sm">
+			@ChatInput()
+		</div>
 	</details>
 }

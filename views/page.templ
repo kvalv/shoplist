@@ -63,8 +63,9 @@ templ Page(current *carts.Cart, choices []*carts.Cart, messages []*carts.Message
 			data-init="@get('/render')"
 			data-signals:current={ q(current.ID) }
 			class="container"
+			style="min-height: 100vh; display: flex; flex-direction: column;"
 		>
-			<main class="container ">
+			<main class="container" style="flex: 1; padding: 16px;">
 				<div class="flex gap-2">
 					// <input
 					// 	data-bind:name
@@ -101,8 +102,8 @@ templ Page(current *carts.Cart, choices []*carts.Cart, messages []*carts.Message
 					</button>
 				</form>
 				@cartList(current.Items)
-				@Chat(messages)
 			</main>
+			@Chat(messages)
 		</body>
 	</html>
 }
