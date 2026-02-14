@@ -16,21 +16,21 @@ templ ColorPicker() {
 			if (!c) return;
 			this.querySelectorAll('div').forEach(function(d) { d.style.border = '2px solid transparent'; });
 			el.style.border = '2px solid #333';
-			document.querySelectorAll('.form-chat input').forEach(function(inp) { inp.style.backgroundColor = c; });
-			console.log(c);
+			var btn = this.closest('.color-dropdown').previousElementSibling;
+			btn.style.color = c;
+			btn.style.borderColor = c;
+			if (navigator.clipboard) { navigator.clipboard.writeText(c); }
 		});
 	</script>
 }
 
 var colorChoices = []string{
-	// close to #faf8f5 (page bg) — subtle variants
-	"#f5f0e8", "#f2efe8", "#f0ede6", "#edeae3",
-	"#eae6de", "#e8e4dc", "#e5e1d8", "#e2ded5",
-	// warm grays
-	"#f2f0ed", "#efece8", "#ece8e3", "#e8e5e0",
-	"#e4e0da", "#ddd9d3", "#d6d2cb",
-	// cooler tones
-	"#f0f0ee", "#ebebea", "#e6e6e4", "#e0e0de",
-	// solarized-ish
-	"#fdf6e3", "#eee8d5", "#e8dfd0",
+	// gruvbox dark
+	"#cc241d", "#98971a", "#d79921",
+	"#458588", "#b16286", "#689d6a",
+	"#d65d0e", "#a89984",
+	// gruvbox light
+	"#9d0006", "#79740e", "#b57614",
+	"#076678", "#8f3f71", "#427b58",
+	"#af3a03", "#928374",
 }

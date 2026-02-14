@@ -341,6 +341,11 @@ svg {
   align-items: center;
 }
 
+.form-chat button {
+  width: auto;
+  flex-shrink: 0;
+}
+
 .form-chat input {
   flex: 1;
   min-width: 0;
@@ -351,15 +356,7 @@ svg {
   background-color: #f2efe8;
 }
 
-.form-chat button {
-  width: auto;
-  padding: 6px;
-  border: 1px solid #2e8b57;
-  color: #2e8b57;
-  border-radius: 6px;
-  background: none;
-  box-shadow: none;
-}
+
 
 
 .flex-1 {
@@ -423,6 +420,24 @@ svg {
   /* first elem takes max space, second takes only the space it needs */
   justify-content: space-between;
   align-items: center;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.color-dropdown {
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  margin-bottom: 8px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  z-index: 10;
+  width: 200px;
 }
 
 .chat-toggle {
