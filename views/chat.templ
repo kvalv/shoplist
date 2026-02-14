@@ -51,7 +51,7 @@ templ ChatInput() {
 templ Chat(messages []*carts.Message, cart *carts.Cart) {
 	<details open class="chat-panel">
 		<summary class="bg-primary text-inverse text-sm fw-600 p-1 shadow-md">Chat</summary>
-		<div class="chat-messages flex-col gap-half">
+		<div class="chat-messages flex-col gap-half" data-init="el.querySelector(':scope > :last-child')?.scrollIntoView({ behavior: 'instant', block: 'start' }); new MutationObserver(() => el.querySelector(':scope > :last-child')?.scrollIntoView({ behavior: 'smooth', block: 'start' })).observe(el, { childList: true })">
 			for _, msg := range messages {
 				@ChatMessage(msg, cart)
 			}
