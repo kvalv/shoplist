@@ -15,15 +15,16 @@ func NewCheckItem(
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log := logger.FromRequest(r)
+		signals := SignalsFromRequest(r)
 		ID := r.URL.Query().Get("id")
 		userID := auth.ClaimsFromRequest(r).UserID
 
-		cart, _ := repo.Latest()
+		cart, _ := repo.Cart(signals.Current)
 		cart.Get(ID).Toggle(userID)
 		repo.Save(cart)
 
 		bus.Publish(events.CartUpdated{CartID: cart.ID})
 
-		log.Info("tick called")
+		log.Info("tick called", "itemID", ID)
 	}
 }

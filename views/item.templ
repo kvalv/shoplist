@@ -5,16 +5,55 @@ import "github.com/kvalv/shoplist/stores"
 
 templ CartItem(item *carts.Item, isShopping bool, s stores.Store) {
 	<div id={ f("item-%s", item.ID) } class="border rounded-sm shadow-sm p-1">
-		switch s {
-			case stores.ClasOhlson:
-				@ClasOhlsonItem(item, isShopping)
-			case stores.Kiwi:
-				if isShopping {
-					"shop + kiwi"
-				} else {
+		if isShopping {
+			@ShoppingItem(item, s)
+		} else {
+			switch s {
+				case stores.ClasOhlson:
+					@ClasOhlsonItem(item, isShopping)
+				case stores.Kiwi:
 					"kiwi + not shop"
-				}
+			}
 		}
+	</div>
+}
+
+templ ShoppingItem(item *carts.Item, s stores.Store) {
+	<div class="flex items-center gap-1">
+		<label
+			class={ "flex items-center gap-1 flex-grow pointer", templ.KV("text-secondary", item.Checked) }
+			style="min-width: 100px; margin: 0;"
+		>
+			<input
+				data-on:click__prevent={ f("@post('/check?id=%s')", item.ID) }
+				data-init={ f("el.checked = %t", item.Checked) }
+				type="checkbox"
+				style="margin: 0;"
+			/>
+			if s == stores.ClasOhlson {
+				if selected := item.Clas.Selected(); selected != nil {
+					<div class="flex gap-2 items-center">
+						<img src={ selected.Picture } alt={ selected.Name } class="img-thumb-lg"/>
+						<div class="flex-col gap-half">
+							{ selected.Name }
+							if len(selected.Locations) > 0 {
+								<span class="text-xs text-secondary">{ selected.Locations[0].Area } — { selected.Locations[0].Shelf }</span>
+							}
+						</div>
+					</div>
+				} else {
+					{ item.Text }
+				}
+			} else {
+				{ item.Text }
+			}
+		</label>
+		<button class="btn-icon" onclick="">
+			@IconWarning()
+		</button>
+		<button class="btn-icon" onclick="">
+			@IconX()
+		</button>
 	</div>
 }
 

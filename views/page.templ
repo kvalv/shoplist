@@ -18,30 +18,19 @@ func itemText(item *carts.Item) string {
 }
 
 templ cartList(items []*carts.Item) {
-	<div class="flex-col gap-1">
+	<div data-show="!$shopping" class="flex-col gap-1">
 		for _, item := range items {
 			@CartItem(item, false, stores.ClasOhlson)
 		}
 	</div>
-	if false {
-		<ul>
-			for _, item := range items {
-				<li>
-					<label>
-						<input
-							data-on:click__prevent={ fmt.Sprintf("@post('/check?id=%s')", item.ID) }
-							data-init={ fmt.Sprintf("el.checked = %t", item.Checked) }
-							type="checkbox"
-						/>
-						{ itemText(item) }
-					</label>
-				</li>
-			}
-		</ul>
-	}
+	<div data-show="$shopping" class="flex-col gap-1">
+		for _, item := range items {
+			@CartItem(item, true, stores.ClasOhlson)
+		}
+	</div>
 }
 
-templ Page(current *carts.Cart, choices []*carts.Cart, messages []*carts.Message) {
+templ Page(current *carts.Cart, choices []*carts.Cart, messages []*carts.Message, shopping bool) {
 	if current == nil {
 		return "current is nil"
 	}
@@ -62,19 +51,12 @@ templ Page(current *carts.Cart, choices []*carts.Cart, messages []*carts.Message
 			id="body"
 			data-init="@get('/render')"
 			data-signals:current={ q(current.ID) }
+			data-signals:shopping__ifmissing={ fmt.Sprintf("%t", shopping) }
 			class="container"
 			style="min-height: 100vh; display: flex; flex-direction: column;"
 		>
 			<main class="container" style="flex: 1; padding: 16px;">
-				<div class="flex gap-2">
-					// <input
-					// 	data-bind:name
-					// 	data-on:blur="@post('/set-name')"
-					// 	value={ current.Name }
-					// 	class="input"
-					// 	type="text"
-					// 	aria-label="Cart name"
-					// />
+				<div class="flex gap-2 items-center">
 					@CartSelect(current, choices)
 					<select
 						value={ fmt.Sprintf("\"%d\"", current.TargetStore) }
@@ -84,6 +66,14 @@ templ Page(current *carts.Cart, choices []*carts.Cart, messages []*carts.Message
 						<option selected?={ current.TargetStore == stores.Kiwi } value="0">Kiwi</option>
 						<option value="1" selected?={ current.TargetStore == stores.ClasOhlson }>Clas Ohlson</option>
 					</select>
+					<label class="shopping-toggle">
+						<input
+							type="checkbox"
+							role="switch"
+							data-bind="shopping"
+							data-on:change="const u = new URL(window.location); if ($shopping) { u.searchParams.set('shopping', 'true') } else { u.searchParams.delete('shopping') }; history.replaceState(null, '', u)"
+						/>
+					</label>
 				</div>
 				<form
 					class="form-add"

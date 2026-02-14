@@ -167,6 +167,28 @@ func chatTools(
 			return fmt.Sprintf("item %q not found in the list", args.Text), nil
 		}),
 
+		llm.Func("toggle_item", "Check or uncheck an item on the shopping list by name", func(args struct {
+			Text string `json:"text" desc:"the item name to toggle"`
+		}) (string, error) {
+			lower := strings.ToLower(args.Text)
+			for _, item := range cart.Items {
+				if strings.ToLower(item.Text) == lower {
+					item.Toggle("assistant")
+					if err := repo.Save(cart); err != nil {
+						return "", err
+					}
+					status := "checked"
+					if !item.Checked {
+						status = "unchecked"
+					}
+					log.Info("Assistant toggled item", "text", item.Text, "checked", item.Checked)
+					bus.Publish(events.CartUpdated{CartID: cart.ID})
+					return fmt.Sprintf("%s %q", status, item.Text), nil
+				}
+			}
+			return fmt.Sprintf("item %q not found in the list", args.Text), nil
+		}),
+
 		llm.Func("list_items", "List all items currently in the shopping list", func(args struct {
 			IncludeChecked bool `json:"include_checked" desc:"whether to include already checked-off items" required:"false"`
 		}) ([]string, error) {
