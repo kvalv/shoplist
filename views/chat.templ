@@ -57,6 +57,7 @@ templ ChatInput() {
 			data-bind="msg"
 			type="text"
 			autocomplete="off"
+			autofocus
 			data-attr:placeholder="$chatMode === 'list' ? 'Add item' : 'Message...'"
 		/>
 		<button class="btn-icon" data-attr:disabled="$msg === ''" type="submit">

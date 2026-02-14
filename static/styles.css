@@ -252,6 +252,16 @@ svg {
   object-fit: contain;
 }
 
+.btn-icon-sm {
+  width: 24px;
+  height: 24px;
+}
+
+.btn-icon-sm svg {
+  width: 16px;
+  height: 16px;
+}
+
 .btn-icon {
   padding: 4px;
   margin: 0;

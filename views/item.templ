@@ -2,18 +2,14 @@ package views
 
 import "github.com/kvalv/shoplist/carts"
 import "github.com/kvalv/shoplist/stores"
+import "time"
 
 templ CartItem(item *carts.Item, isShopping bool, s stores.Store) {
 	<div id={ f("item-%s", item.ID) } class="border rounded-sm shadow-sm p-1" style="background:#fff">
 		if isShopping {
 			@ShoppingItem(item, s)
 		} else {
-			switch s {
-				case stores.ClasOhlson:
-					@ClasOhlsonItem(item, isShopping)
-				case stores.Kiwi:
-					"kiwi + not shop"
-			}
+			@ListItem(item, s)
 		}
 	</div>
 }
@@ -48,12 +44,39 @@ templ ShoppingItem(item *carts.Item, s stores.Store) {
 				{ item.Text }
 			}
 		</label>
-		<button class="btn-icon" onclick="">
-			@IconWarning()
-		</button>
-		<button class="btn-icon" onclick="">
+		if s == stores.ClasOhlson && item.Clas != nil && len(item.Clas.Candidates) > 0 && item.Clas.Selected() == nil {
+			<button class="btn-icon" onclick="">
+				@IconWarning()
+			</button>
+		}
+		<button class="btn-icon btn-icon-sm text-secondary" onclick="">
 			@IconX()
 		</button>
+	</div>
+}
+
+templ ListItem(item *carts.Item, s stores.Store) {
+	<div class="flex items-center gap-1">
+		<div class="flex-grow">
+			<div class="fw-500">{ item.Text }</div>
+			<div class="text-xs text-secondary">{ item.CreatedBy } &middot; { fmtTime(item.CreatedAt) }</div>
+		</div>
+		<!-- Actions (right) -->
+		<details class="dropdown" style="margin: 0;">
+			<summary role="button" class="outline secondary btn-icon">
+				@IconDotsThreeVertical()
+			</summary>
+			<ul dir="rtl">
+				<li>
+					<a
+						href="#"
+						data-on:click__prevent={ f("@post('/delete?id=%s')", item.ID) }
+					>
+						Delete
+					</a>
+				</li>
+			</ul>
+		</details>
 	</div>
 }
 
@@ -171,4 +194,8 @@ templ Availability(qty int) {
 
 // 24x squared, some rounding on the border
 templ Picture(src string, alt string) {
+}
+
+func fmtTime(t time.Time) string {
+	return t.Format("02 Jan 15:04")
 }
