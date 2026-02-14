@@ -362,6 +362,52 @@ svg {
   margin-bottom: 0;
 }
 
+.flex-1 {
+  flex: 1;
+}
+
+.mb-half {
+  margin-bottom: 4px;
+}
+
+.mb-0 {
+  margin-bottom: 0;
+}
+
+.text-2xs {
+  font-size: 0.625rem;
+}
+
+.lh-1 {
+  line-height: 1;
+}
+
+.px-half {
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+.py-quarter {
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+
+.rounded-full {
+  border-radius: 9999px;
+}
+
+.gap-quarter {
+  gap: 2px;
+}
+
+.border-none {
+  border: none;
+}
+
+.bg-muted {
+  background-color: var(--pico-muted-border-color);
+}
+
 .item-plan-clas {
   display: flex;
   flex-direction: row;

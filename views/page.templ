@@ -75,22 +75,7 @@ templ Page(current *carts.Cart, choices []*carts.Cart, messages []*carts.Message
 						/>
 					</label>
 				</div>
-				<form
-					class="form-add"
-					data-on:submit="@post('/add')"
-				>
-					<input
-						data-bind="text"
-						name="text"
-						type="text"
-						placeholder="Add item"
-						autocomplete="off"
-						autofocus
-					/>
-					<button data-attr:disabled="$text === ''" type="submit">
-						@IconPlus()
-					</button>
-				</form>
+				// Top add-item form removed — now in chat panel footer
 				@cartList(current.Items)
 			</main>
 			@Chat(messages, current)

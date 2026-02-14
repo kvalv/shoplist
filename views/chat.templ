@@ -35,21 +35,42 @@ func derefOr(p *string, fallback string) string {
 }
 
 templ ChatInput() {
-	<form class="form-chat flex gap-1" data-on:submit="@post('/add-message')">
+	<div class="flex gap-quarter mb-half">
+		<span
+			class="text-2xs fw-600 lh-1 px-half py-quarter rounded-full pointer"
+			data-on:click="$chatMode = 'add'"
+			data-class:bg-primary="$chatMode === 'add'"
+			data-class:text-inverse="$chatMode === 'add'"
+			data-class:bg-muted="$chatMode !== 'add'"
+		>+ Add</span>
+		<span
+			class="text-2xs fw-600 lh-1 px-half py-quarter rounded-full pointer"
+			data-on:click="$chatMode = 'chat'"
+			data-class:bg-primary="$chatMode === 'chat'"
+			data-class:text-inverse="$chatMode === 'chat'"
+			data-class:bg-muted="$chatMode !== 'chat'"
+		>Chat</span>
+	</div>
+	<form class="form-chat flex gap-1" data-on:submit="@post('/add')">
 		<input
-			data-bind="chatMsg"
+			data-bind="msg"
 			type="text"
-			placeholder="Message..."
 			autocomplete="off"
+			data-attr:placeholder="$chatMode === 'add' ? 'Add item' : 'Message...'"
 		/>
-		<button class="btn-icon" data-attr:disabled="$chatMsg === ''" type="submit">
-			@IconPaperPlane()
+		<button class="btn-icon" data-attr:disabled="$msg === ''" type="submit">
+			<span data-show="$chatMode === 'add'">
+				@IconPlus()
+			</span>
+			<span data-show="$chatMode === 'chat'">
+				@IconPaperPlane()
+			</span>
 		</button>
 	</form>
 }
 
 templ Chat(messages []*carts.Message, cart *carts.Cart) {
-	<details open class="chat-panel">
+	<details open class="chat-panel" data-signals:chatMode__ifmissing="'add'">
 		<summary class="bg-primary text-inverse text-sm fw-600 p-1 shadow-md">Chat</summary>
 		<div class="chat-messages flex-col gap-half" data-init="el.querySelector(':scope > :last-child')?.scrollIntoView({ behavior: 'instant', block: 'start' }); new MutationObserver(() => el.querySelector(':scope > :last-child')?.scrollIntoView({ behavior: 'smooth', block: 'start' })).observe(el, { childList: true })">
 			for _, msg := range messages {

@@ -22,13 +22,26 @@ func NewAddItem(
 		signals := SignalsFromRequest(r)
 		claims := auth.ClaimsFromRequest(r)
 
+		if signals.ChatMode == "chat" {
+			msg := carts.NewMessage(signals.Current, signals.Msg).WithUser(claims.UserID)
+			log.Info("/add (chat)", "text", signals.Msg, "user", claims.UserID)
+			if err := repo.AddMessage(msg); err != nil {
+				log.Error("failed to add message", "error", err)
+				return
+			}
+			bus.Publish(events.CartUpdated{CartID: signals.Current})
+			bus.Publish(events.ChatAdded{CartID: signals.Current, MessageID: msg.ID})
+			datastar.NewSSE(w, r).PatchSignals([]byte(`{"msg": ""}`))
+			return
+		}
+
 		cart, _ := repo.Latest()
-		log.Info("/add invoked", "text", signals.Text, "cartID", cart.ID)
+		log.Info("/add invoked", "text", signals.Msg, "cartID", cart.ID)
 
 		event := events.CartUpdated{
 			CartID: cart.ID,
 		}
-		if got, _ := url.ParseRequestURI(signals.Text); got != nil {
+		if got, _ := url.ParseRequestURI(signals.Msg); got != nil {
 			log.Info("this is a recipe, trying to parse")
 			parts, err := recipe.Parse(context.Background(), got)
 			if err != nil {
@@ -41,11 +54,11 @@ func NewAddItem(
 				event.ItemIDs = append(event.ItemIDs, item.ID)
 			}
 		} else {
-			item := cart.Add(signals.Text, claims.UserID)
+			item := cart.Add(signals.Msg, claims.UserID)
 			event.ItemIDs = append(event.ItemIDs, item.ID)
 		}
 		repo.Save(cart)
 		bus.Publish(event)
-		datastar.NewSSE(w, r).PatchSignals([]byte(`{"text": ""}`))
+		datastar.NewSSE(w, r).PatchSignals([]byte(`{"msg": ""}`))
 	}
 }
