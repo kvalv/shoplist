@@ -136,8 +136,11 @@ func run(ctx context.Context, log *slog.Logger) error {
 			// panic(fmt.Errorf("failed to fetch cart: %w id=%q", err, chi.URLParam(r, "id")))
 		}
 		msgs, _ := repo.Messages(cart.ID)
-		shopping := r.URL.Query().Get("shopping") == "true"
-		templ.Handler(views.Page(cart, nil, msgs, shopping)).ServeHTTP(w, r)
+		mode := r.URL.Query().Get("mode")
+		if mode == "" {
+			mode = "list"
+		}
+		templ.Handler(views.Page(cart, nil, msgs, mode)).ServeHTTP(w, r)
 	})
 
 	r.HandleFunc("/static/", func(w http.ResponseWriter, r *http.Request) {
@@ -175,7 +178,7 @@ func run(ctx context.Context, log *slog.Logger) error {
 			if active != nil {
 				msgs, _ = repo.Messages(active.ID)
 			}
-			sse.PatchElementTempl(views.Page(active, cartList, msgs, false))
+			sse.PatchElementTempl(views.Page(active, cartList, msgs, "list"))
 		}
 		renderActive()
 

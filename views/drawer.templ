@@ -16,13 +16,13 @@ templ CartDrawerPage(activeID string, choices []*carts.Cart) {
 			<link rel="stylesheet" href="/static/styles.css?"/>
 		</head>
 		<body class="container" style="min-height: 100vh;">
+			<nav class="flex items-center gap-1 sticky top-0 z-10 bg-page shadow-down rounded-bottom p-1">
+				<span class="fw-500 flex-grow">Carts</span>
+				<button class="btn-icon" onclick="history.back()">
+					@IconX()
+				</button>
+			</nav>
 			<main class="container" style="padding: 16px;">
-				<div class="drawer-header">
-					<strong class="text-lg">Carts</strong>
-					<button class="btn-icon" onclick="history.back()">
-						@IconX()
-					</button>
-				</div>
 				<form method="post" action="/new-cart">
 					<button type="submit" class="drawer-cart-item">
 						<span class="flex items-center gap-1">

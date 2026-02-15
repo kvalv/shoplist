@@ -10,7 +10,7 @@ type signals struct {
 	Current string `json:"current"` // current cart ID
 	Name    string `json:"name"`    // name for current cart
 	Msg      string `json:"msg"`      // unified input text (add item or chat)
-	ChatMode string `json:"chatMode"` // "add" or "chat"
+	Mode     string `json:"mode"`     // "list", "chat", or "shop"
 }
 
 // we're just going to panic on error, for simplicity

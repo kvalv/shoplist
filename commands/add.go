@@ -22,7 +22,7 @@ func NewAddItem(
 		signals := SignalsFromRequest(r)
 		claims := auth.ClaimsFromRequest(r)
 
-		if signals.ChatMode == "chat" {
+		if signals.Mode == "chat" {
 			msg := carts.NewMessage(signals.Current, signals.Msg).WithUser(claims.UserID)
 			log.Info("/add (chat)", "text", signals.Msg, "user", claims.UserID)
 			if err := repo.AddMessage(msg); err != nil {

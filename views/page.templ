@@ -17,27 +17,20 @@ func itemText(item *carts.Item) string {
 	return item.Text
 }
 
-func ternary(cond bool, a, b string) string {
-	if cond {
-		return a
-	}
-	return b
-}
-
 templ cartList(items []*carts.Item) {
-	<div data-show="!$shopping" class="flex-col gap-1">
+	<div data-show="$mode !== 'shop'" class="flex-col gap-1">
 		for _, item := range items {
 			@CartItem(item, false, stores.ClasOhlson)
 		}
 	</div>
-	<div data-show="$shopping" class="flex-col gap-1">
+	<div data-show="$mode === 'shop'" class="flex-col gap-1">
 		for _, item := range items {
 			@CartItem(item, true, stores.ClasOhlson)
 		}
 	</div>
 }
 
-templ Page(current *carts.Cart, choices []*carts.Cart, messages []*carts.Message, shopping bool) {
+templ Page(current *carts.Cart, choices []*carts.Cart, messages []*carts.Message, mode string) {
 	if current == nil {
 		return "current is nil"
 	}
@@ -55,17 +48,16 @@ templ Page(current *carts.Cart, choices []*carts.Cart, messages []*carts.Message
 			id="body"
 			data-init="@get('/render')"
 			data-signals:current={ q(current.ID) }
-			data-signals:shopping__ifmissing={ fmt.Sprintf("%t", shopping) }
-			data-signals:chatMode__ifmissing={ ternary(shopping, "'shop'", "'list'") }
+			data-signals:mode__ifmissing={ q(mode) }
 			class="container"
 			style="min-height: 100vh; display: flex; flex-direction: column;"
 		>
 			@NavBar(current)
 			<main class="container" style="flex: 1; padding: 16px;">
-				<div data-show="$chatMode !== 'chat'">
+				<div data-show="$mode !== 'chat'">
 					@cartList(current.Items)
 				</div>
-				<div data-show="$chatMode === 'chat'" class="chat-messages-main flex-col gap-half" data-init="el.querySelector(':scope > :last-child')?.scrollIntoView({ behavior: 'instant', block: 'start' }); new MutationObserver(() => el.querySelector(':scope > :last-child')?.scrollIntoView({ behavior: 'smooth', block: 'start' })).observe(el, { childList: true })">
+				<div data-show="$mode === 'chat'" class="chat-messages-main flex-col gap-half" data-init="el.querySelector(':scope > :last-child')?.scrollIntoView({ behavior: 'instant', block: 'start' }); new MutationObserver(() => el.querySelector(':scope > :last-child')?.scrollIntoView({ behavior: 'smooth', block: 'start' })).observe(el, { childList: true })">
 					for _, msg := range messages {
 						@ChatMessage(msg, current)
 					}
@@ -77,9 +69,16 @@ templ Page(current *carts.Cart, choices []*carts.Cart, messages []*carts.Message
 }
 
 templ NavBar(current *carts.Cart) {
-	<nav class="flex items-center sticky top-0 z-10 bg-page shadow-down rounded-bottom p-1">
-		<span class="fw-500">{ current.Name }</span>
-		<div class="flex-grow"></div>
+	<nav class="flex items-center gap-1 sticky top-0 z-10 bg-page shadow-down rounded-bottom p-1">
+		<span
+			class="fw-500 flex-grow"
+			contenteditable="true"
+			role="textbox"
+			aria-label="Cart name"
+			data-signals:name__ifmissing={ q(current.Name) }
+			data-on:blur="$name = el.textContent.trim(); @post('/set-name')"
+			data-on:keydown="if (event.key === 'Enter') { event.preventDefault(); el.blur() }"
+		>{ current.Name }</span>
 		<a href={ templ.SafeURL("/drawer?active=" + current.ID) } class="btn-icon">
 			@IconHamburger()
 		</a>
