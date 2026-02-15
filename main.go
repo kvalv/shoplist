@@ -207,6 +207,25 @@ func run(ctx context.Context, log *slog.Logger) error {
 		}
 	}()
 
+	r.HandleFunc("/drawer", func(w http.ResponseWriter, r *http.Request) {
+		cartList, _ := repo.List(5)
+		activeID := r.URL.Query().Get("active")
+		templ.Handler(views.CartDrawerPage(activeID, cartList)).ServeHTTP(w, r)
+	})
+
+	r.HandleFunc("/new-cart", func(w http.ResponseWriter, r *http.Request) {
+		claims := auth.ClaimsFromRequest(r)
+		name := time.Now().Format("2 January")
+		cart := carts.New().WithName(name).WithCreator(claims.UserID)
+		if err := repo.Save(cart); err != nil {
+			log.Error("failed to save cart", "error", err)
+			http.Error(w, "failed to create cart", http.StatusInternalServerError)
+			return
+		}
+		bus.Publish(events.CartCreated{CartID: cart.ID})
+		http.Redirect(w, r, "/"+cart.ID, http.StatusSeeOther)
+	})
+
 	r.HandleFunc("/add", commands.NewAddItem(repo, bus))
 	r.HandleFunc("/check", commands.NewCheckItem(repo, bus))
 	r.HandleFunc("/set-name", commands.NewSetName(repo, bus))

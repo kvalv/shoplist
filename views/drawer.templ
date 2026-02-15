@@ -1,0 +1,53 @@
+package views
+
+import (
+	"github.com/kvalv/shoplist/carts"
+	"fmt"
+)
+
+templ CartDrawerPage(activeID string, choices []*carts.Cart) {
+	<html data-theme="light">
+		<head>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<link
+				rel="stylesheet"
+				href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.sand.min.css"
+			/>
+			<link rel="stylesheet" href="/static/styles.css?"/>
+		</head>
+		<body class="container" style="min-height: 100vh;">
+			<main class="container" style="padding: 16px;">
+				<div class="drawer-header">
+					<strong class="text-lg">Carts</strong>
+					<button class="btn-icon" onclick="history.back()">
+						@IconX()
+					</button>
+				</div>
+				<form method="post" action="/new-cart">
+					<button type="submit" class="drawer-cart-item">
+						<span class="flex items-center gap-1">
+							@IconPlus()
+							<span>New cart</span>
+						</span>
+					</button>
+				</form>
+				<hr/>
+				<div class="flex-col gap-half">
+					for _, choice := range choices {
+						<a
+							href={ templ.SafeURL("/" + choice.ID) }
+							class={ "drawer-cart-item", templ.KV("active", choice.ID == activeID) }
+						>
+							<span class="fw-500">{ choice.Name }</span>
+							<span class="drawer-cart-meta">
+								{ fmt.Sprintf("%d items", len(choice.Items)) }
+								&middot;
+								{ choice.CreatedAt.Format("Jan 2") }
+							</span>
+						</a>
+					}
+				</div>
+			</main>
+		</body>
+	</html>
+}

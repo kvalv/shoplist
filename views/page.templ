@@ -45,13 +45,10 @@ templ Page(current *carts.Cart, choices []*carts.Cart, messages []*carts.Message
 		<head>
 			<script type="module" src="https://cdn.jsdelivr.net/gh/starfederation/datastar@1.0.0-RC.7/bundles/datastar.js"></script>
 			<meta name="viewport" content="width=device-width, initial-scale=1"/>
-			// <meta name="color-scheme" content="light"/>
 			<link
 				rel="stylesheet"
 				href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.sand.min.css"
 			/>
-			// <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css"/>
-			// <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 			<link rel="stylesheet" href="/static/styles.css?"/>
 		</head>
 		<body
@@ -65,17 +62,12 @@ templ Page(current *carts.Cart, choices []*carts.Cart, messages []*carts.Message
 		>
 			<main class="container" style="flex: 1; padding: 16px;">
 				<div class="flex gap-2 items-center">
-					@CartSelect(current, choices)
-					<select
-						value={ fmt.Sprintf("\"%d\"", current.TargetStore) }
-						data-bind="store"
-						data-on:change="@post('/set-store')"
-					>
-						<option selected?={ current.TargetStore == stores.Kiwi } value="0">Kiwi</option>
-						<option value="1" selected?={ current.TargetStore == stores.ClasOhlson }>Clas Ohlson</option>
-					</select>
+					<span class="fw-500">{ current.Name }</span>
+					<div class="flex-grow"></div>
+					<a href={ templ.SafeURL("/drawer?active=" + current.ID) } class="btn-icon">
+						@IconHamburger()
+					</a>
 				</div>
-				// Top add-item form removed — now in chat panel footer
 				<div data-show="$chatMode !== 'chat'">
 					@cartList(current.Items)
 				</div>
@@ -88,28 +80,6 @@ templ Page(current *carts.Cart, choices []*carts.Cart, messages []*carts.Message
 			@Chat()
 		</body>
 	</html>
-}
-
-templ CartSelect(active *carts.Cart, choices []*carts.Cart) {
-	<select
-		style=""
-		name="cart-id"
-		data-bind:current
-		data-on:change="@post('/switch-cart')"
-	>
-		<option
-			data-on:select__stop="@post('/new-cart')"
-			value="_new"
-		>
-			<span>New cart</span>
-		</option>
-		for _, choice := range choices {
-			<option
-				selected?={ active != nil && choice.ID == active.ID }
-				value={ choice.ID }
-			>{ choice.Name }</option>
-		}
-	</select>
 }
 
 var f = fmt.Sprintf
