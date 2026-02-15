@@ -60,14 +60,8 @@ templ Page(current *carts.Cart, choices []*carts.Cart, messages []*carts.Message
 			class="container"
 			style="min-height: 100vh; display: flex; flex-direction: column;"
 		>
+			@NavBar(current)
 			<main class="container" style="flex: 1; padding: 16px;">
-				<div class="flex gap-2 items-center">
-					<span class="fw-500">{ current.Name }</span>
-					<div class="flex-grow"></div>
-					<a href={ templ.SafeURL("/drawer?active=" + current.ID) } class="btn-icon">
-						@IconHamburger()
-					</a>
-				</div>
 				<div data-show="$chatMode !== 'chat'">
 					@cartList(current.Items)
 				</div>
@@ -80,6 +74,16 @@ templ Page(current *carts.Cart, choices []*carts.Cart, messages []*carts.Message
 			@Chat()
 		</body>
 	</html>
+}
+
+templ NavBar(current *carts.Cart) {
+	<nav class="flex items-center sticky top-0 z-10 bg-page shadow-down rounded-bottom p-1">
+		<span class="fw-500">{ current.Name }</span>
+		<div class="flex-grow"></div>
+		<a href={ templ.SafeURL("/drawer?active=" + current.ID) } class="btn-icon">
+			@IconHamburger()
+		</a>
+	</nav>
 }
 
 var f = fmt.Sprintf

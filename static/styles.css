@@ -295,14 +295,32 @@ svg {
   /* background-color: red; */
 }
 
-.chat-panel {
+.sticky {
   position: sticky;
+}
+.top-0 {
+  top: 0;
+}
+.bottom-0 {
   bottom: 0;
-  border-radius: 8px 8px 0 0;
-  margin-bottom: 0 !important;
-  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.06);
-  background-color: var(--pico-background-color);
+}
+.z-10 {
   z-index: 10;
+}
+.bg-page {
+  background-color: var(--pico-background-color);
+}
+.shadow-down {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+}
+.shadow-up {
+  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.06);
+}
+.rounded-top {
+  border-radius: 8px 8px 0 0;
+}
+.rounded-bottom {
+  border-radius: 0 0 8px 8px;
 }
 
 .chat-messages-main {
