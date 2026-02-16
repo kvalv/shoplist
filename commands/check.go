@@ -15,16 +15,16 @@ func NewCheckItem(
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log := logger.FromRequest(r)
-		signals := SignalsFromRequest(r)
-		ID := r.URL.Query().Get("id")
+		itemID := r.URL.Query().Get("id")
 		userID := auth.ClaimsFromRequest(r).UserID
 
-		cart, _ := repo.Cart(signals.Current)
-		cart.Get(ID).Toggle(userID)
-		repo.Save(cart)
+		cartID, err := repo.ToggleItem(itemID, userID)
+		if err != nil {
+			log.Error("failed to toggle item", "error", err, "itemID", itemID)
+			return
+		}
 
-		bus.Publish(events.CartUpdated{CartID: cart.ID})
-
-		log.Info("tick called", "itemID", ID)
+		bus.Publish(events.CartUpdated{CartID: cartID})
+		log.Info("tick called", "itemID", itemID)
 	}
 }

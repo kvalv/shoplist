@@ -28,7 +28,7 @@ templ CartDrawerPage(activeID string, choices []*carts.Cart) {
 				<div class="flex-col gap-half">
 					for _, choice := range choices {
 						<a
-							href={ templ.SafeURL("/" + choice.ID) }
+							href={ urlf("/%s", choice.ID) }
 							class={ "drawer-cart-item", templ.KV("active", choice.ID == activeID) }
 						>
 							<span class="fw-500">{ choice.Name }</span>

@@ -21,21 +21,26 @@ func NewAddItem(
 		log := logger.FromRequest(r)
 		signals := SignalsFromRequest(r)
 		claims := auth.ClaimsFromRequest(r)
+		cartID := signals.Current
 
 		if signals.Mode == "chat" {
-			msg := carts.NewMessage(signals.Current, signals.Msg).WithUser(claims.UserID)
+			msg := carts.NewMessage(cartID, signals.Msg).WithUser(claims.UserID)
 			log.Info("/add (chat)", "text", signals.Msg, "user", claims.UserID)
 			if err := repo.AddMessage(msg); err != nil {
 				log.Error("failed to add message", "error", err)
 				return
 			}
-			bus.Publish(events.CartUpdated{CartID: signals.Current})
-			bus.Publish(events.ChatAdded{CartID: signals.Current, MessageID: msg.ID})
+			bus.Publish(events.CartUpdated{CartID: cartID})
+			bus.Publish(events.ChatAdded{CartID: cartID, MessageID: msg.ID})
 			datastar.NewSSE(w, r).PatchSignals([]byte(`{"msg": ""}`))
 			return
 		}
 
-		cart, _ := repo.Latest()
+		cart, err := repo.Cart(cartID)
+		if err != nil {
+			log.Error("failed to fetch cart", "error", err, "cartID", cartID)
+			return
+		}
 		log.Info("/add invoked", "text", signals.Msg, "cartID", cart.ID)
 
 		event := events.CartUpdated{

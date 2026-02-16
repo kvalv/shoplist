@@ -257,6 +257,44 @@ func (r *SqliteRepository) AddCollaborators(cartID string, userIDs ...string) er
 	return nil
 }
 
+func (r *SqliteRepository) ToggleItem(itemID, userID string) (cartID string, err error) {
+	var row struct {
+		CartID string `db:"cart_id"`
+	}
+	if err := get(r.db, &row, `SELECT cart_id FROM items WHERE id = ?`, itemID); err != nil {
+		return "", fmt.Errorf("toggle item: %w", err)
+	}
+	_, err = r.db.Exec(
+		`UPDATE items SET checked = NOT checked, updated_at = ?, updated_by = ? WHERE id = ?`,
+		time.Now(), userID, itemID,
+	)
+	if err != nil {
+		return "", fmt.Errorf("toggle item: %w", err)
+	}
+	return row.CartID, nil
+}
+
+func (r *SqliteRepository) SetActiveCart(userID, cartID string) error {
+	_, err := r.db.Exec(`UPDATE users SET active_cart = ? WHERE user_id = ?`, cartID, userID)
+	if err != nil {
+		return fmt.Errorf("set active cart: %w", err)
+	}
+	return nil
+}
+
+func (r *SqliteRepository) ActiveCart(userID string) (string, error) {
+	var row struct {
+		ActiveCart *string `db:"active_cart"`
+	}
+	if err := get(r.db, &row, `SELECT active_cart FROM users WHERE user_id = ?`, userID); err != nil {
+		return "", fmt.Errorf("active cart: %w", err)
+	}
+	if row.ActiveCart == nil {
+		return "", nil
+	}
+	return *row.ActiveCart, nil
+}
+
 func (r *SqliteRepository) UpdateChatSeenAt(cartID, userID string) error {
 	_, err := r.db.Exec(
 		`UPDATE collaborators SET chat_seen_at = ? WHERE cart_id = ? AND user_id = ?`,

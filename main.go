@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"time"
 
 	"github.com/a-h/templ"
@@ -127,20 +126,31 @@ func run(ctx context.Context, log *slog.Logger) error {
 		w.WriteHeader(http.StatusFound)
 	})
 
-	// Initial render
+	r.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	})
+
 	r.HandleFunc("/{id}", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/"+chi.URLParam(r, "id")+"/list", http.StatusFound)
+	})
+	r.HandleFunc("/{id}/{mode}", func(w http.ResponseWriter, r *http.Request) {
+		claims := auth.ClaimsFromRequest(r)
+		mode := chi.URLParam(r, "mode")
 		cart, err := repo.Cart(chi.URLParam(r, "id"))
 		if err != nil {
-			// favicon.ico
 			log.Error("failed to fetch cart", "error", err, "id", chi.URLParam(r, "id"))
 			return
-			// panic(fmt.Errorf("failed to fetch cart: %w id=%q", err, chi.URLParam(r, "id")))
+		}
+		repo.SetActiveCart(claims.UserID, cart.ID)
+		switch mode {
+		case "chat":
+			bus.Publish(events.ChatOpened{CartID: cart.ID, UserID: claims.UserID})
+		case "list", "shop":
+		default:
+			http.NotFound(w, r)
+			return
 		}
 		msgs, _ := repo.Messages(cart.ID)
-		mode := r.URL.Query().Get("mode")
-		if mode == "" {
-			mode = "list"
-		}
 		templ.Handler(views.Cart(cart, nil, msgs, mode)).ServeHTTP(w, r)
 	})
 
@@ -151,61 +161,35 @@ func run(ctx context.Context, log *slog.Logger) error {
 		http.ServeFile(w, r, "./static/styles.css")
 	})
 
-	// Render loop
-	r.HandleFunc("/render", func(w http.ResponseWriter, r *http.Request) {
-		if true {
-			return
-		}
-		sse := datastar.NewSSE(w, r)
+	// Render loop (SSE)
+	r.HandleFunc("/render/{id}/{mode}", func(w http.ResponseWriter, r *http.Request) {
+		cartID := chi.URLParam(r, "id")
+		mode := chi.URLParam(r, "mode")
 
+		log.Info("SSE /render connected", "cartID", cartID, "mode", mode)
+
+		sse := datastar.NewSSE(w, r)
 		sub := bus.Subscribe()
 		defer sub.Close()
-
-		// // send initial render
-		// var activeID string
-		// if sig := commands.SignalsFromRequest(r); sig != nil {
-		// 	activeID = sig.Current
-		// }
-		// get the first /{id}
-		// activeID := chi.
-		activeID := strings.Split(r.URL.Path, "/")[0]
-
-		cartList, _ := repo.List(5)
-		if activeID == "" && len(cartList) > 0 {
-			activeID = cartList[0].ID
-		}
-
-		renderActive := func() {
-			cartList, _ := repo.List(5)
-			active, _ := repo.Cart(activeID)
-			if active == nil && len(cartList) > 0 {
-				active = cartList[0]
-			}
-			var msgs []*carts.Message
-			if active != nil {
-				msgs, _ = repo.Messages(active.ID)
-			}
-			sse.PatchElementTempl(views.Cart(active, cartList, msgs, "list"))
-		}
-		renderActive()
 
 		done := r.Context().Done()
 		for {
 			select {
 			case <-done:
+				log.Info("SSE /render disconnected", "cartID", cartID, "mode", mode)
 				return
 			case event := <-sub.Ch:
-				switch ev := event.(type) {
-				case events.CartSwitched:
-					activeID = ev.CartID
-				case events.CartCreated:
-					activeID = ev.CartID
-				}
-				log.Info("render fat morph",
+				log.Info("SSE sending update to frontend",
 					"event", fmt.Sprintf("%T", event),
-					"cartID", activeID,
+					"cartID", cartID,
+					"mode", mode,
 				)
-				renderActive()
+				active, _ := repo.Cart(cartID)
+				if active == nil {
+					continue
+				}
+				msgs, _ := repo.Messages(active.ID)
+				sse.PatchElementTempl(views.Cart(active, nil, msgs, mode))
 			}
 		}
 	})
@@ -236,7 +220,6 @@ func run(ctx context.Context, log *slog.Logger) error {
 		http.Redirect(w, r, "/"+cart.ID, http.StatusSeeOther)
 	})
 
-	r.HandleFunc("/{id}/chat", commands.NewChatOpened(bus))
 	r.HandleFunc("/add", commands.NewAddItem(repo, bus))
 	r.HandleFunc("/check", commands.NewCheckItem(repo, bus))
 	r.HandleFunc("/set-name", commands.NewSetName(repo, bus))

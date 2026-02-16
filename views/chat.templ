@@ -20,7 +20,7 @@ templ ChatMessage(msg *carts.Message, cart *carts.Cart) {
 	<div class="chat-bubble">
 		<span class="chat-name"><span class="fw-600">{ derefOr(msg.UserID, string(msg.Role)) }</span> <span class="fw-300">{ msg.CreatedAt.Format("15:04") }</span></span>
 		if msg.ItemID != nil {
-			<span>{ msg.Text } <a href={ templ.SafeURL("#item-" + *msg.ItemID) } class="chat-chip">{ itemName(cart, msg.ItemID) }</a></span>
+			<span>{ msg.Text } <a href={ urlf("#item-%s", *msg.ItemID) } class="chat-chip">{ itemName(cart, msg.ItemID) }</a></span>
 		} else {
 			<span>{ msg.Text }</span>
 		}
@@ -35,37 +35,38 @@ func derefOr(p *string, fallback string) string {
 }
 
 templ ChatHistory(cart *carts.Cart, messages []*carts.Message) {
-	<div class="flex-col gap-half overflow-y-auto py-1" data-init={ "fetch('/" + cart.ID + "/chat'); el.querySelector(':scope > :last-child')?.scrollIntoView({ behavior: 'instant', block: 'start' }); new MutationObserver(() => el.querySelector(':scope > :last-child')?.scrollIntoView({ behavior: 'smooth', block: 'start' })).observe(el, { childList: true })" }>
+	<div class="flex-col gap-half overflow-y-auto py-1" data-init="el.querySelector(':scope > :last-child')?.scrollIntoView({ behavior: 'instant', block: 'start' }); new MutationObserver(() => el.querySelector(':scope > :last-child')?.scrollIntoView({ behavior: 'smooth', block: 'start' })).observe(el, { childList: true })">
 		for _, msg := range messages {
 			@ChatMessage(msg, cart)
 		}
 	</div>
 }
 
-templ ChatInput() {
-	<div class="chat-toggle mb-1" data-on:change="window.location.href = location.pathname + '?mode=' + $mode">
-		<label class="chat-toggle-item pointer flex items-center gap-half" data-class:chat-toggle-active="$mode === 'list'">
-			<input type="radio" class="hidden" name="mode" value="list" data-bind:mode/>
+templ ChatInput(cartID string, mode string) {
+	<div class="chat-toggle mb-1">
+		<a href={ urlf("/%s/list", cartID) } class={ "chat-toggle-item pointer flex items-center gap-half", templ.KV("chat-toggle-active", mode == "list") }>
 			@IconList()
 			List
-		</label>
-		<label class="chat-toggle-item pointer flex items-center gap-half" data-class:chat-toggle-active="$mode === 'chat'">
-			<input type="radio" class="hidden" name="mode" value="chat" data-bind:mode/>
+		</a>
+		<a href={ urlf("/%s/chat", cartID) } class={ "chat-toggle-item pointer flex items-center gap-half", templ.KV("chat-toggle-active", mode == "chat") }>
 			@IconChatBubble()
 			Chat
-		</label>
-		<label class="chat-toggle-item pointer flex items-center gap-half" data-class:chat-toggle-active="$mode === 'shop'">
-			<input type="radio" class="hidden" name="mode" value="shop" data-bind:mode/>
+		</a>
+		<a href={ urlf("/%s/shop", cartID) } class={ "chat-toggle-item pointer flex items-center gap-half", templ.KV("chat-toggle-active", mode == "shop") }>
 			@IconShoppingCart()
 			Shop
-		</label>
+		</a>
 	</div>
 	<form class="form-chat flex gap-1" data-on:submit="@post('/add')">
 		<input
 			data-bind="msg"
 			type="text"
 			autocomplete="off"
-			data-attr:placeholder="$mode === 'list' ? 'Add item' : 'Message...'"
+			if mode == "list" {
+				placeholder="Add item"
+			} else {
+				placeholder="Message..."
+			}
 		/>
 		<button class="btn-icon" data-attr:disabled="$msg === ''" type="submit">
 			@IconPlus()

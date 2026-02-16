@@ -63,6 +63,54 @@ func TestAddAndTick(t *testing.T) {
 	})
 }
 
+func TestToggleItem(t *testing.T) {
+	repo := NewTestRepository(t).WithUsers("alice", "bob")
+
+	cart := New().WithCreator("alice")
+	item := cart.Add("milk", "alice")
+	repo.MustSave(cart)
+
+	t.Run("toggle unchecked to checked", func(t *testing.T) {
+		cartID, err := repo.ToggleItem(item.ID, "bob")
+		if err != nil {
+			t.Fatalf("ToggleItem() error: %v", err)
+		}
+		if cartID != cart.ID {
+			t.Errorf("cartID = %q, want %q", cartID, cart.ID)
+		}
+		expectItem(t, repo, cart.ID, item.ID, func(item *Item) {
+			if !item.Checked {
+				t.Errorf("expected item to be checked")
+			}
+			if item.UpdatedBy != "bob" {
+				t.Errorf("updatedBy = %q, want %q", item.UpdatedBy, "bob")
+			}
+		})
+	})
+
+	t.Run("toggle checked back to unchecked", func(t *testing.T) {
+		_, err := repo.ToggleItem(item.ID, "alice")
+		if err != nil {
+			t.Fatalf("ToggleItem() error: %v", err)
+		}
+		expectItem(t, repo, cart.ID, item.ID, func(item *Item) {
+			if item.Checked {
+				t.Errorf("expected item to be unchecked")
+			}
+			if item.UpdatedBy != "alice" {
+				t.Errorf("updatedBy = %q, want %q", item.UpdatedBy, "alice")
+			}
+		})
+	})
+
+	t.Run("not found", func(t *testing.T) {
+		_, err := repo.ToggleItem("nonexistent", "alice")
+		if err == nil {
+			t.Fatal("expected error for nonexistent item, got nil")
+		}
+	})
+}
+
 func TestSelectClasOhlsonItem(t *testing.T) {
 	repo := NewTestRepository(t).WithUsers("alice")
 

@@ -24,9 +24,9 @@ templ Cart(current *carts.Cart, choices []*carts.Cart, messages []*carts.Message
 		@Head()
 		<body
 			id="body"
-			data-init="@get('/render')"
+			data-init={ "@get('/render/" + current.ID + "/" + mode + "')" }
 			data-signals:current={ q(current.ID) }
-			data-signals:mode__ifmissing={ q(mode) }
+			data-signals:mode={ q(mode) }
 			class="container"
 			style="min-height: 100vh; display: flex; flex-direction: column;"
 		>
@@ -41,7 +41,7 @@ templ Cart(current *carts.Cart, choices []*carts.Cart, messages []*carts.Message
 						@ChatHistory(current, messages)
 				}
 			</main>
-			@Footer()
+			@Footer(current.ID, mode)
 		</body>
 	</html>
 }
@@ -57,19 +57,23 @@ templ NavBar(current *carts.Cart) {
 			data-on:blur="$name = el.textContent.trim(); @post('/set-name')"
 			data-on:keydown="if (event.key === 'Enter') { event.preventDefault(); el.blur() }"
 		>{ current.Name }</span>
-		<a href={ templ.SafeURL("/drawer?active=" + current.ID) } class="btn-icon">
+		<a href={ urlf("/drawer?active=%s", current.ID) } class="btn-icon">
 			@IconHamburger()
 		</a>
 	</nav>
 }
 
-templ Footer() {
+templ Footer(cartID string, mode string) {
 	<div class="sticky bottom-0 z-10 bg-page shadow-up rounded-top mb-0 p-1">
-		@ChatInput()
+		@ChatInput(cartID, mode)
 	</div>
 }
 
 var f = fmt.Sprintf
+
+func urlf(format string, a ...any) templ.SafeURL {
+	return templ.SafeURL(fmt.Sprintf(format, a...))
+}
 
 // convenience function to quote, so we don't have to do { fmt.Sprintf(...) }
 // all over the place.
