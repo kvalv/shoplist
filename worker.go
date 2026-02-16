@@ -82,11 +82,17 @@ func RunBackgroundWorker(
 
 			case events.ItemDiscarded:
 				log.Info("ItemDiscarded", "itemID", ev.ItemID, "userID", ev.UserID, "reason", ev.Reason)
+				if ev.Reason == "delete" {
+					if err := repo.DeleteItem(ev.ItemID); err != nil {
+						log.Error("Failed to delete item", "error", err)
+					}
+					bus.Publish(events.CartUpdated{CartID: ev.CartID})
+					continue
+				}
 				reasons := map[string]string{
-					"not_found":    "Not found",
+					"not_found":    "Fant ikke",
 					"already_have": "Already have",
-					"wont_buy":     "Won't buy",
-					"delete":       "Deleted",
+					"wont_buy":     "Kjøper ikke",
 				}
 				text := reasons[ev.Reason]
 				if text == "" {
