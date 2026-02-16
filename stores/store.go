@@ -3,6 +3,6 @@ package stores
 type Store int
 
 const (
-	Kiwi Store = iota
+	General Store = iota
 	ClasOhlson
 )

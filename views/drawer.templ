@@ -2,13 +2,18 @@ package views
 
 import (
 	"github.com/kvalv/shoplist/carts"
+	"github.com/kvalv/shoplist/stores"
 	"fmt"
 )
 
 templ CartDrawerPage(activeID string, choices []*carts.Cart) {
 	<html data-theme="light">
 		@Head()
-		<body class="container" style="min-height: 100vh;">
+		<body
+			class="container"
+			style="min-height: 100vh;"
+			data-signals:newCartStore={ q(f("%d", stores.General)) }
+		>
 			<nav class="flex items-center gap-1 sticky top-0 z-10 bg-page shadow-down rounded-bottom p-1">
 				<span class="fw-500 flex-grow">Carts</span>
 				<button class="btn-icon" onclick="history.back()">
@@ -16,14 +21,15 @@ templ CartDrawerPage(activeID string, choices []*carts.Cart) {
 				</button>
 			</nav>
 			<main class="container" style="padding: 16px;">
-				<form method="post" action="/new-cart">
-					<button type="submit" class="drawer-cart-item">
-						<span class="flex items-center gap-1">
-							@IconPlus()
-							<span>New cart</span>
-						</span>
-					</button>
-				</form>
+				<button
+					class="drawer-cart-item"
+					data-on:click="document.getElementById('new-cart-modal').showModal()"
+				>
+					<span class="flex items-center gap-1">
+						@IconPlus()
+						<span>New cart</span>
+					</span>
+				</button>
 				<hr/>
 				<div class="flex-col gap-half">
 					for _, choice := range choices {
@@ -41,6 +47,30 @@ templ CartDrawerPage(activeID string, choices []*carts.Cart) {
 					}
 				</div>
 			</main>
+			@NewCartModal()
 		</body>
 	</html>
+}
+
+templ NewCartModal() {
+	<dialog id="new-cart-modal" closedby="any">
+		<article>
+			<header>
+				<form method="dialog">
+					<button aria-label="Close" rel="prev"></button>
+				</form>
+				<p><strong>New cart</strong></p>
+			</header>
+			<label>
+				Select store type
+				<select data-bind="newCartStore">
+					<option value={ f("%d", stores.General) }>General</option>
+					<option value={ f("%d", stores.ClasOhlson) }>Clas Ohlson</option>
+				</select>
+			</label>
+			<div class="flex-col">
+				<button class="primary" data-on:click="@post('/new-cart')">Create</button>
+			</div>
+		</article>
+	</dialog>
 }
