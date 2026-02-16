@@ -56,9 +56,9 @@ func (r *SqliteRepository) saveItem(cartID string, item *Item) error {
 		chosen = &item.Clas.Chosen
 	}
 	_, err = tx.Exec(
-		`INSERT INTO items (id, cart_id, text, checked, created_at, updated_at, created_by, updated_by, clas_chosen) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-		 ON CONFLICT(id) DO UPDATE SET checked = excluded.checked, updated_at = excluded.updated_at, updated_by = excluded.updated_by, clas_chosen = excluded.clas_chosen`,
-		item.ID, cartID, item.Text, item.Checked, item.CreatedAt, item.UpdatedAt, item.CreatedBy, item.UpdatedBy, chosen,
+		`INSERT INTO items (id, cart_id, text, checked, created_at, updated_at, created_by, updated_by, clas_chosen, discarded) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		 ON CONFLICT(id) DO UPDATE SET checked = excluded.checked, updated_at = excluded.updated_at, updated_by = excluded.updated_by, clas_chosen = excluded.clas_chosen, discarded = excluded.discarded`,
+		item.ID, cartID, item.Text, item.Checked, item.CreatedAt, item.UpdatedAt, item.CreatedBy, item.UpdatedBy, chosen, item.Discarded,
 	)
 
 	if err != nil {
@@ -118,7 +118,7 @@ func (r *SqliteRepository) Cart(ID string) (*Cart, error) {
 }
 
 func (r *SqliteRepository) loadCartItems(cart *Cart) (*Cart, error) {
-	if err := many(&cart.Items, r.db, `SELECT id, text, checked, created_at, updated_at, clas_chosen, created_by, updated_by FROM items WHERE cart_id = ? ORDER BY created_at ASC`, cart.ID); err != nil {
+	if err := many(&cart.Items, r.db, `SELECT id, text, checked, created_at, updated_at, clas_chosen, created_by, updated_by, discarded FROM items WHERE cart_id = ? ORDER BY created_at ASC`, cart.ID); err != nil {
 		return nil, err
 	}
 
@@ -270,6 +270,21 @@ func (r *SqliteRepository) ToggleItem(itemID, userID string) (cartID string, err
 	)
 	if err != nil {
 		return "", fmt.Errorf("toggle item: %w", err)
+	}
+	return row.CartID, nil
+}
+
+func (r *SqliteRepository) DiscardItem(itemID, userID string) (cartID string, err error) {
+	var row struct {
+		CartID string `db:"cart_id"`
+	}
+	if err := get(r.db, &row, `
+		UPDATE items SET discarded = true, updated_at = ?, updated_by = ?
+		WHERE id = ?
+		RETURNING cart_id`,
+		time.Now(), userID, itemID,
+	); err != nil {
+		return "", fmt.Errorf("discard item: %w", err)
 	}
 	return row.CartID, nil
 }

@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS items(
     cart_id text NOT NULL REFERENCES carts(id) ON DELETE CASCADE,
     text text NOT NULL,
     checked boolean NOT NULL,
+    discarded boolean NOT NULL DEFAULT FALSE,
     created_at DATETIME NOT NULL,
     created_by text REFERENCES users(user_id) ON DELETE SET NULL,
     updated_by text REFERENCES users(user_id) ON DELETE SET NULL,

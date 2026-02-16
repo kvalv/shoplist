@@ -49,10 +49,14 @@ templ ShoppingItem(item *carts.Item, s stores.Store) {
 				@IconWarning()
 			</button>
 		}
-		<button class="btn-icon btn-icon-sm text-secondary" onclick="">
+		<button
+			class="btn-icon btn-icon-sm text-secondary"
+			data-on:click={ f("document.getElementById('discard-%s').showModal()", item.ID) }
+		>
 			@IconX()
 		</button>
 	</div>
+	@DiscardModal(item.ID)
 }
 
 templ ListItem(item *carts.Item, s stores.Store) {
@@ -190,6 +194,47 @@ templ Availability(qty int) {
 			Out of stock
 		</div>
 	}
+}
+
+templ DiscardModal(itemID string) {
+	<dialog id={ f("discard-%s", itemID) }>
+		<article>
+			<header>
+				<button
+					aria-label="Close"
+					rel="prev"
+					data-on:click={ f("document.getElementById('discard-%s').close()", itemID) }
+				></button>
+				<p><strong>Why are you removing this item?</strong></p>
+			</header>
+			<div class="flex-col gap-1">
+				<button
+					class="outline"
+					data-on:click={ f("@post('/discard/%s/not_found'); document.getElementById('discard-%s').close()", itemID, itemID) }
+				>
+					Not found
+				</button>
+				<button
+					class="outline"
+					data-on:click={ f("@post('/discard/%s/already_have'); document.getElementById('discard-%s').close()", itemID, itemID) }
+				>
+					Already have
+				</button>
+				<button
+					class="outline"
+					data-on:click={ f("@post('/discard/%s/wont_buy'); document.getElementById('discard-%s').close()", itemID, itemID) }
+				>
+					Won't buy
+				</button>
+				<button
+					class="outline"
+					data-on:click={ f("@post('/discard/%s/other'); document.getElementById('discard-%s').close()", itemID, itemID) }
+				>
+					Other
+				</button>
+			</div>
+		</article>
+	</dialog>
 }
 
 // 24x squared, some rounding on the border

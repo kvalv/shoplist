@@ -177,6 +177,48 @@ func TestDeleteItem(t *testing.T) {
 	}
 }
 
+func TestDiscardItem(t *testing.T) {
+	repo := NewTestRepository(t).WithUsers("alice")
+
+	cart := New()
+	item := cart.Add("milk", "alice")
+	repo.MustSave(cart)
+
+	t.Run("basic", func(t *testing.T) {
+		cartID, err := repo.DiscardItem(item.ID, "alice")
+		if err != nil {
+			t.Fatalf("DiscardItem() error: %v", err)
+		}
+		if cartID != cart.ID {
+			t.Errorf("cartID = %q, want %q", cartID, cart.ID)
+		}
+		expectItem(t, repo, cart.ID, item.ID, func(item *Item) {
+			if !item.Discarded {
+				t.Errorf("expected item to be discarded")
+			}
+		})
+	})
+
+	t.Run("idempotent", func(t *testing.T) {
+		_, err := repo.DiscardItem(item.ID, "alice")
+		if err != nil {
+			t.Fatalf("second DiscardItem() error: %v", err)
+		}
+		expectItem(t, repo, cart.ID, item.ID, func(item *Item) {
+			if !item.Discarded {
+				t.Errorf("expected item to still be discarded")
+			}
+		})
+	})
+
+	t.Run("not found", func(t *testing.T) {
+		_, err := repo.DiscardItem("nonexistent", "alice")
+		if err == nil {
+			t.Fatal("expected error for nonexistent item, got nil")
+		}
+	})
+}
+
 func TestCollaborator(t *testing.T) {
 	repo := NewTestRepository(t).WithUsers("alice", "bob")
 

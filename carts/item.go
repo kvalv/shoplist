@@ -15,6 +15,7 @@ type Item struct {
 	UpdatedBy  string    `db:"updated_by"`
 	CreatedBy  string    `db:"created_by"`
 	ClasChosen *string   `db:"clas_chosen"`
+	Discarded  bool      `db:"discarded"`
 
 	Clas *ClasSearch `db:"-"`
 }

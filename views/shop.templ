@@ -6,7 +6,9 @@ import "github.com/kvalv/shoplist/stores"
 templ Shop(items []*carts.Item) {
 	<div class="flex-col gap-1">
 		for _, item := range items {
-			@CartItem(item, true, stores.ClasOhlson)
+			if !item.Discarded {
+				@CartItem(item, true, stores.ClasOhlson)
+			}
 		}
 	</div>
 }
