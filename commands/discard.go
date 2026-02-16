@@ -27,7 +27,6 @@ func NewDiscardItem(
 		}
 
 		bus.Publish(events.CartUpdated{CartID: cartID})
-		bus.Publish(events.ItemDiscarded{ItemID: itemID, UserID: userID, Reason: reason})
-		log.Info("item discarded", "itemID", itemID, "reason", reason)
+		bus.Publish(events.ItemDiscarded{CartID: cartID, ItemID: itemID, UserID: userID, Reason: reason})
 	}
 }

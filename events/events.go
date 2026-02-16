@@ -29,6 +29,7 @@ type (
 		UserID string
 	}
 	ItemDiscarded struct {
+		CartID string
 		ItemID string
 		UserID string
 		Reason string

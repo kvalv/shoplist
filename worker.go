@@ -80,6 +80,25 @@ func RunBackgroundWorker(
 				}
 				bus.Publish(events.CartUpdated{CartID: ev.CartID})
 
+			case events.ItemDiscarded:
+				log.Info("ItemDiscarded", "itemID", ev.ItemID, "userID", ev.UserID, "reason", ev.Reason)
+				reasons := map[string]string{
+					"not_found":    "Not found",
+					"already_have": "Already have",
+					"wont_buy":     "Won't buy",
+					"delete":       "Deleted",
+				}
+				text := reasons[ev.Reason]
+				if text == "" {
+					text = ev.Reason
+				}
+				msg := carts.NewMessage(ev.CartID, text).WithUser(ev.UserID).WithItem(ev.ItemID)
+				if err := repo.AddMessage(msg); err != nil {
+					log.Error("Failed to add discard message", "error", err)
+					continue
+				}
+				bus.Publish(events.CartUpdated{CartID: ev.CartID})
+
 			case events.CartUpdated:
 				log.Info("Received event", "type", fmt.Sprintf("%T", ev), "event", ev)
 				c, err := repo.Cart(ev.CartID)
