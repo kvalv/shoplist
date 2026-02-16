@@ -46,7 +46,7 @@ func main() {
 }
 
 func run(ctx context.Context, log *slog.Logger) error {
-	db, err := sql.Open("sqlite", "file:shop.db")
+	db, err := sql.Open("sqlite", "file:shop.db?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)")
 	if err != nil {
 		log.Error("failed to open db", "error", err)
 		os.Exit(1)
