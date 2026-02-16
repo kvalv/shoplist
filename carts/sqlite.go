@@ -261,14 +261,12 @@ func (r *SqliteRepository) ToggleItem(itemID, userID string) (cartID string, err
 	var row struct {
 		CartID string `db:"cart_id"`
 	}
-	if err := get(r.db, &row, `SELECT cart_id FROM items WHERE id = ?`, itemID); err != nil {
-		return "", fmt.Errorf("toggle item: %w", err)
-	}
-	_, err = r.db.Exec(
-		`UPDATE items SET checked = NOT checked, updated_at = ?, updated_by = ? WHERE id = ?`,
+	if err := get(r.db, &row, `
+		UPDATE items SET checked = NOT checked, updated_at = ?, updated_by = ?
+		WHERE id = ?
+		RETURNING cart_id`,
 		time.Now(), userID, itemID,
-	)
-	if err != nil {
+	); err != nil {
 		return "", fmt.Errorf("toggle item: %w", err)
 	}
 	return row.CartID, nil
