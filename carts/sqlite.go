@@ -287,26 +287,6 @@ func (r *SqliteRepository) DiscardItem(itemID, userID string) (cartID string, er
 	return row.CartID, nil
 }
 
-func (r *SqliteRepository) SetActiveCart(userID, cartID string) error {
-	_, err := r.db.Exec(`UPDATE users SET active_cart = ? WHERE user_id = ?`, cartID, userID)
-	if err != nil {
-		return fmt.Errorf("set active cart: %w", err)
-	}
-	return nil
-}
-
-func (r *SqliteRepository) ActiveCart(userID string) (string, error) {
-	var row struct {
-		ActiveCart *string `db:"active_cart"`
-	}
-	if err := get(r.db, &row, `SELECT active_cart FROM users WHERE user_id = ?`, userID); err != nil {
-		return "", fmt.Errorf("active cart: %w", err)
-	}
-	if row.ActiveCart == nil {
-		return "", nil
-	}
-	return *row.ActiveCart, nil
-}
 
 func (r *SqliteRepository) UpdateChatSeenAt(cartID, userID string) error {
 	_, err := r.db.Exec(

@@ -100,7 +100,6 @@ CREATE TABLE IF NOT EXISTS users(
     name text NOT NULL,
     email text NOT NULL,
     picture text NULL,
-    active_cart text NULL REFERENCES carts(id) ON DELETE SET NULL,
     last_actiom timestamp,
     created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

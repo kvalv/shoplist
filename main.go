@@ -141,7 +141,6 @@ func run(ctx context.Context, log *slog.Logger) error {
 			log.Error("failed to fetch cart", "error", err, "id", chi.URLParam(r, "id"))
 			return
 		}
-		repo.SetActiveCart(claims.UserID, cart.ID)
 		switch mode {
 		case "chat":
 			bus.Publish(events.ChatOpened{CartID: cart.ID, UserID: claims.UserID})
