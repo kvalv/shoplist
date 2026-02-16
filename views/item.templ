@@ -197,42 +197,40 @@ templ Availability(qty int) {
 }
 
 templ DiscardModal(itemID string) {
-	<dialog id={ f("discard-%s", itemID) }>
+	<dialog id={ f("discard-%s", itemID) } closedby="any">
 		<article>
 			<header>
-				<button
-					aria-label="Close"
-					rel="prev"
-					data-on:click={ f("document.getElementById('discard-%s').close()", itemID) }
-				></button>
-				<p><strong>Why are you removing this item?</strong></p>
+				<form method="dialog">
+					<button aria-label="Close" rel="prev"></button>
+				</form>
+				<p><strong>Discard item</strong></p>
 			</header>
-			<div class="flex-col gap-1">
+			<form method="dialog" class="flex-col gap-1">
 				<button
 					class="outline"
-					data-on:click={ f("@post('/discard/%s/not_found'); document.getElementById('discard-%s').close()", itemID, itemID) }
+					data-on:click={ f("@post('/discard/%s/not_found')", itemID) }
 				>
 					Not found
 				</button>
 				<button
 					class="outline"
-					data-on:click={ f("@post('/discard/%s/already_have'); document.getElementById('discard-%s').close()", itemID, itemID) }
+					data-on:click={ f("@post('/discard/%s/already_have')", itemID) }
 				>
 					Already have
 				</button>
 				<button
 					class="outline"
-					data-on:click={ f("@post('/discard/%s/wont_buy'); document.getElementById('discard-%s').close()", itemID, itemID) }
+					data-on:click={ f("@post('/discard/%s/wont_buy')", itemID) }
 				>
 					Won't buy
 				</button>
 				<button
-					class="outline"
-					data-on:click={ f("@post('/discard/%s/other'); document.getElementById('discard-%s').close()", itemID, itemID) }
+					class="secondary"
+					data-on:click={ f("@post('/discard/%s/delete')", itemID) }
 				>
-					Other
+					Delete
 				</button>
-			</div>
+			</form>
 		</article>
 	</dialog>
 }
