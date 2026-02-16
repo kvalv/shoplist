@@ -69,6 +69,19 @@ templ Footer(cartID string, mode string) {
 	</div>
 }
 
+templ NotFoundPage() {
+	<html data-theme="light">
+		@Head()
+		<body class="container" style="min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+			<main class="text-center">
+				<h1>404</h1>
+				<p>This cart does not exist.</p>
+				<a href="/drawer" role="button">Go to cart list</a>
+			</main>
+		</body>
+	</html>
+}
+
 var f = fmt.Sprintf
 
 func urlf(format string, a ...any) templ.SafeURL {

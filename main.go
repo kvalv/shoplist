@@ -112,18 +112,12 @@ func run(ctx context.Context, log *slog.Logger) error {
 	}()
 
 	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		var curr *carts.Cart
-		carts, err := repo.List(5)
-		if err != nil {
-			log.Error("failed to fetch latest cart", "error", err)
+		carts, err := repo.List(1)
+		if err != nil || len(carts) == 0 {
+			http.NotFound(w, r)
+			return
 		}
-		if len(carts) > 0 {
-			curr = carts[0]
-		}
-		log.Info("redirecting to latest cart", "cartID", curr.ID)
-		// redirect to latest
-		w.Header().Set("Location", "/"+curr.ID)
-		w.WriteHeader(http.StatusFound)
+		http.Redirect(w, r, "/"+carts[0].ID, http.StatusFound)
 	})
 
 	r.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
@@ -138,7 +132,8 @@ func run(ctx context.Context, log *slog.Logger) error {
 		mode := chi.URLParam(r, "mode")
 		cart, err := repo.Cart(chi.URLParam(r, "id"))
 		if err != nil {
-			log.Error("failed to fetch cart", "error", err, "id", chi.URLParam(r, "id"))
+			w.WriteHeader(http.StatusNotFound)
+			templ.Handler(views.NotFoundPage()).ServeHTTP(w, r)
 			return
 		}
 		switch mode {
