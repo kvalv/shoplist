@@ -34,6 +34,48 @@ func TestSqliteBasic(t *testing.T) {
 	t.Logf("Latest cart: %+v", latest)
 }
 
+func TestList(t *testing.T) {
+	repo := NewTestRepository(t)
+
+	// Create 3 carts with distinct names so we can verify order
+	c1 := New().WithName("first")
+	c2 := New().WithName("second")
+	c3 := New().WithName("third")
+	// Ensure ordering via incrementing timestamps
+	c2.CreatedAt = c1.CreatedAt.Add(1)
+	c3.CreatedAt = c1.CreatedAt.Add(2)
+	for _, c := range []*Cart{c1, c2, c3} {
+		repo.MustSave(c)
+	}
+
+	tests := []struct {
+		name      string
+		n         int
+		wantNames []string
+	}{
+		{"all three", 5, []string{"third", "second", "first"}},
+		{"limit to 2", 2, []string{"third", "second"}},
+		{"limit to 1", 1, []string{"third"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := repo.List(tt.n)
+			if err != nil {
+				t.Fatalf("List(%d) error: %v", tt.n, err)
+			}
+			if len(got) != len(tt.wantNames) {
+				t.Fatalf("List(%d) returned %d carts, want %d", tt.n, len(got), len(tt.wantNames))
+			}
+			for i, want := range tt.wantNames {
+				if got[i].Name != want {
+					t.Errorf("List(%d)[%d].Name = %q, want %q", tt.n, i, got[i].Name, want)
+				}
+			}
+		})
+	}
+}
+
 func TestAddAndTick(t *testing.T) {
 	repo := NewTestRepository(t).WithUsers("alice", "bob")
 
