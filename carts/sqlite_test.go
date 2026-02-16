@@ -321,6 +321,79 @@ func TestMessage(t *testing.T) {
 	})
 }
 
+func TestUnseenMessageCount(t *testing.T) {
+	repo := NewTestRepository(t).WithUsers("alice", "bob")
+
+	cart := New().WithCreator("alice")
+	repo.MustSave(cart)
+	repo.AddCollaborators(cart.ID, "bob")
+
+	t.Run("no messages", func(t *testing.T) {
+		count, err := repo.UnseenMessageCount(cart.ID, "alice")
+		if err != nil {
+			t.Fatalf("UnseenMessageCount() error: %v", err)
+		}
+		if count != 0 {
+			t.Errorf("expected 0 unseen, got %d", count)
+		}
+	})
+
+	t.Run("all unseen when chat_seen_at is NULL", func(t *testing.T) {
+		m1 := NewMessage(cart.ID, "hey alice").WithUser("bob")
+		m2 := NewMessage(cart.ID, "second msg").WithUser("bob")
+		for _, m := range []*Message{m1, m2} {
+			if err := repo.AddMessage(m); err != nil {
+				t.Fatalf("AddMessage() error: %v", err)
+			}
+		}
+
+		count, err := repo.UnseenMessageCount(cart.ID, "alice")
+		if err != nil {
+			t.Fatalf("UnseenMessageCount() error: %v", err)
+		}
+		if count != 2 {
+			t.Errorf("expected 2 unseen, got %d", count)
+		}
+	})
+
+	t.Run("own messages excluded", func(t *testing.T) {
+		count, err := repo.UnseenMessageCount(cart.ID, "bob")
+		if err != nil {
+			t.Fatalf("UnseenMessageCount() error: %v", err)
+		}
+		if count != 0 {
+			t.Errorf("expected 0 unseen (own messages), got %d", count)
+		}
+	})
+
+	t.Run("after marking seen, count resets", func(t *testing.T) {
+		if err := repo.UpdateChatSeenAt(cart.ID, "alice"); err != nil {
+			t.Fatalf("UpdateChatSeenAt() error: %v", err)
+		}
+		count, err := repo.UnseenMessageCount(cart.ID, "alice")
+		if err != nil {
+			t.Fatalf("UnseenMessageCount() error: %v", err)
+		}
+		if count != 0 {
+			t.Errorf("expected 0 after marking seen, got %d", count)
+		}
+	})
+
+	t.Run("new message after seen increments count", func(t *testing.T) {
+		m3 := NewMessage(cart.ID, "new msg").WithUser("bob")
+		if err := repo.AddMessage(m3); err != nil {
+			t.Fatalf("AddMessage() error: %v", err)
+		}
+		count, err := repo.UnseenMessageCount(cart.ID, "alice")
+		if err != nil {
+			t.Fatalf("UnseenMessageCount() error: %v", err)
+		}
+		if count != 1 {
+			t.Errorf("expected 1 unseen after new message, got %d", count)
+		}
+	})
+}
+
 func expectItem(t *testing.T, repo *TestRepository, cartID string, itemID string, cb func(item *Item)) {
 	cart, err := repo.Cart(cartID)
 	if err != nil {

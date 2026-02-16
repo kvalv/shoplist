@@ -3,7 +3,6 @@ package views
 import (
 	"github.com/kvalv/shoplist/carts"
 	"fmt"
-	"github.com/kvalv/shoplist/stores"
 )
 
 func itemText(item *carts.Item) string {
@@ -17,33 +16,12 @@ func itemText(item *carts.Item) string {
 	return item.Text
 }
 
-templ cartList(items []*carts.Item) {
-	<div data-show="$mode !== 'shop'" class="flex-col gap-1">
-		for _, item := range items {
-			@CartItem(item, false, stores.ClasOhlson)
-		}
-	</div>
-	<div data-show="$mode === 'shop'" class="flex-col gap-1">
-		for _, item := range items {
-			@CartItem(item, true, stores.ClasOhlson)
-		}
-	</div>
-}
-
-templ Page(current *carts.Cart, choices []*carts.Cart, messages []*carts.Message, mode string) {
+templ Cart(current *carts.Cart, choices []*carts.Cart, messages []*carts.Message, mode string) {
 	if current == nil {
 		return "current is nil"
 	}
 	<html id="foo" data-theme="light">
-		<head>
-			<script type="module" src="https://cdn.jsdelivr.net/gh/starfederation/datastar@1.0.0-RC.7/bundles/datastar.js"></script>
-			<meta name="viewport" content="width=device-width, initial-scale=1"/>
-			<link
-				rel="stylesheet"
-				href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.sand.min.css"
-			/>
-			<link rel="stylesheet" href="/static/styles.css?"/>
-		</head>
+		@Head()
 		<body
 			id="body"
 			data-init="@get('/render')"
@@ -53,17 +31,17 @@ templ Page(current *carts.Cart, choices []*carts.Cart, messages []*carts.Message
 			style="min-height: 100vh; display: flex; flex-direction: column;"
 		>
 			@NavBar(current)
-			<main class="container" style="flex: 1; padding: 16px;">
-				<div data-show="$mode !== 'chat'">
-					@cartList(current.Items)
-				</div>
-				<div data-show="$mode === 'chat'" class="chat-messages-main flex-col gap-half" data-init="el.querySelector(':scope > :last-child')?.scrollIntoView({ behavior: 'instant', block: 'start' }); new MutationObserver(() => el.querySelector(':scope > :last-child')?.scrollIntoView({ behavior: 'smooth', block: 'start' })).observe(el, { childList: true })">
-					for _, msg := range messages {
-						@ChatMessage(msg, current)
-					}
-				</div>
+			<main class="container" style="flex: 1;">
+				switch mode {
+					case "list":
+						@List(current.Items)
+					case "shop":
+						@Shop(current.Items)
+					case "chat":
+						@ChatHistory(current, messages)
+				}
 			</main>
-			@Chat()
+			@Footer()
 		</body>
 	</html>
 }
@@ -83,6 +61,12 @@ templ NavBar(current *carts.Cart) {
 			@IconHamburger()
 		</a>
 	</nav>
+}
+
+templ Footer() {
+	<div class="sticky bottom-0 z-10 bg-page shadow-up rounded-top mb-0 p-1">
+		@ChatInput()
+	</div>
 }
 
 var f = fmt.Sprintf

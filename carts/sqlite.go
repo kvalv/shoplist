@@ -257,6 +257,33 @@ func (r *SqliteRepository) AddCollaborators(cartID string, userIDs ...string) er
 	return nil
 }
 
+func (r *SqliteRepository) UpdateChatSeenAt(cartID, userID string) error {
+	_, err := r.db.Exec(
+		`UPDATE collaborators SET chat_seen_at = ? WHERE cart_id = ? AND user_id = ?`,
+		time.Now(), cartID, userID,
+	)
+	if err != nil {
+		return fmt.Errorf("update chat_seen_at: %w", err)
+	}
+	return nil
+}
+
+func (r *SqliteRepository) UnseenMessageCount(cartID, userID string) (int, error) {
+	var result struct {
+		Count int `db:"count"`
+	}
+	if err := get(r.db, &result, `
+		SELECT COUNT(*) as count FROM messages m
+		JOIN collaborators c ON c.cart_id = m.cart_id AND c.user_id = ?
+		WHERE m.cart_id = ?
+		  AND (m.user_id IS NULL OR m.user_id != ?)
+		  AND (c.chat_seen_at IS NULL OR m.created_at > c.chat_seen_at)
+	`, userID, cartID, userID); err != nil {
+		return 0, fmt.Errorf("unseen message count: %w", err)
+	}
+	return result.Count, nil
+}
+
 func get(db sqlscan.Querier, dest any, query string, args ...any) error {
 	if err := sqlscan.Get(context.TODO(), db, dest, query, args...); err != nil {
 		return fmt.Errorf("query error: %w", err)

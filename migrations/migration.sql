@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS collaborators(
     user_id text NOT NULL,
     cart_id text NOT NULL,
     created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    chat_seen_at timestamp,
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
     FOREIGN KEY (cart_id) REFERENCES carts(id) ON DELETE CASCADE
 );

@@ -24,6 +24,10 @@ type (
 		CartID    string
 		MessageID string
 	}
+	ChatOpened struct {
+		CartID string
+		UserID string
+	}
 )
 
 func (CartUpdated) IsEvent()    {}
@@ -31,3 +35,4 @@ func (CartCreated) IsEvent()    {}
 func (CartSwitched) IsEvent()   {}
 func (UserRegistered) IsEvent() {}
 func (ChatAdded) IsEvent()      {}
+func (ChatOpened) IsEvent()     {}

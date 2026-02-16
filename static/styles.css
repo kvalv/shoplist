@@ -324,11 +324,6 @@ svg {
   border-radius: 0 0 8px 8px;
 }
 
-.chat-messages-main {
-  overflow-y: auto;
-  padding: 8px 0;
-}
-
 .chat-bubble {
   display: flex;
   flex-direction: column;
@@ -422,6 +417,14 @@ svg {
 .py-quarter {
   padding-top: 2px;
   padding-bottom: 2px;
+}
+.py-1 {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.overflow-y-auto {
+  overflow-y: auto;
 }
 
 .rounded-full {

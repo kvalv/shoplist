@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 
 	"github.com/a-h/templ"
@@ -140,7 +141,7 @@ func run(ctx context.Context, log *slog.Logger) error {
 		if mode == "" {
 			mode = "list"
 		}
-		templ.Handler(views.Page(cart, nil, msgs, mode)).ServeHTTP(w, r)
+		templ.Handler(views.Cart(cart, nil, msgs, mode)).ServeHTTP(w, r)
 	})
 
 	r.HandleFunc("/static/", func(w http.ResponseWriter, r *http.Request) {
@@ -152,16 +153,22 @@ func run(ctx context.Context, log *slog.Logger) error {
 
 	// Render loop
 	r.HandleFunc("/render", func(w http.ResponseWriter, r *http.Request) {
+		if true {
+			return
+		}
 		sse := datastar.NewSSE(w, r)
 
 		sub := bus.Subscribe()
 		defer sub.Close()
 
-		// send initial render
-		var activeID string
-		if sig := commands.TrySignalsFromRequest(r); sig != nil {
-			activeID = sig.Current
-		}
+		// // send initial render
+		// var activeID string
+		// if sig := commands.SignalsFromRequest(r); sig != nil {
+		// 	activeID = sig.Current
+		// }
+		// get the first /{id}
+		// activeID := chi.
+		activeID := strings.Split(r.URL.Path, "/")[0]
 
 		cartList, _ := repo.List(5)
 		if activeID == "" && len(cartList) > 0 {
@@ -178,7 +185,7 @@ func run(ctx context.Context, log *slog.Logger) error {
 			if active != nil {
 				msgs, _ = repo.Messages(active.ID)
 			}
-			sse.PatchElementTempl(views.Page(active, cartList, msgs, "list"))
+			sse.PatchElementTempl(views.Cart(active, cartList, msgs, "list"))
 		}
 		renderActive()
 
@@ -229,6 +236,7 @@ func run(ctx context.Context, log *slog.Logger) error {
 		http.Redirect(w, r, "/"+cart.ID, http.StatusSeeOther)
 	})
 
+	r.HandleFunc("/{id}/chat", commands.NewChatOpened(bus))
 	r.HandleFunc("/add", commands.NewAddItem(repo, bus))
 	r.HandleFunc("/check", commands.NewCheckItem(repo, bus))
 	r.HandleFunc("/set-name", commands.NewSetName(repo, bus))
@@ -237,7 +245,6 @@ func run(ctx context.Context, log *slog.Logger) error {
 	r.HandleFunc("/select-clas-item", commands.NewSelectClasItem(repo, bus))
 	r.HandleFunc("/delete", commands.NewDeleteItem(repo, bus))
 	r.HandleFunc("/not-found", commands.NewNotFound(repo, bus))
-
 
 	log.Info("starting server", "addr", server.Addr)
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {

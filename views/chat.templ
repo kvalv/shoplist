@@ -34,19 +34,30 @@ func derefOr(p *string, fallback string) string {
 	return fallback
 }
 
+templ ChatHistory(cart *carts.Cart, messages []*carts.Message) {
+	<div class="flex-col gap-half overflow-y-auto py-1" data-init={ "fetch('/" + cart.ID + "/chat'); el.querySelector(':scope > :last-child')?.scrollIntoView({ behavior: 'instant', block: 'start' }); new MutationObserver(() => el.querySelector(':scope > :last-child')?.scrollIntoView({ behavior: 'smooth', block: 'start' })).observe(el, { childList: true })" }>
+		for _, msg := range messages {
+			@ChatMessage(msg, cart)
+		}
+	</div>
+}
+
 templ ChatInput() {
-	<div class="chat-toggle mb-1" data-on:change="history.replaceState(null, '', location.pathname + '?mode=' + $mode)">
+	<div class="chat-toggle mb-1" data-on:change="window.location.href = location.pathname + '?mode=' + $mode">
 		<label class="chat-toggle-item pointer flex items-center gap-half" data-class:chat-toggle-active="$mode === 'list'">
 			<input type="radio" class="hidden" name="mode" value="list" data-bind:mode/>
-			@IconList() List
+			@IconList()
+			List
 		</label>
 		<label class="chat-toggle-item pointer flex items-center gap-half" data-class:chat-toggle-active="$mode === 'chat'">
 			<input type="radio" class="hidden" name="mode" value="chat" data-bind:mode/>
-			@IconChatBubble() Chat
+			@IconChatBubble()
+			Chat
 		</label>
 		<label class="chat-toggle-item pointer flex items-center gap-half" data-class:chat-toggle-active="$mode === 'shop'">
 			<input type="radio" class="hidden" name="mode" value="shop" data-bind:mode/>
-			@IconShoppingCart() Shop
+			@IconShoppingCart()
+			Shop
 		</label>
 	</div>
 	<form class="form-chat flex gap-1" data-on:submit="@post('/add')">
@@ -54,17 +65,10 @@ templ ChatInput() {
 			data-bind="msg"
 			type="text"
 			autocomplete="off"
-			autofocus
 			data-attr:placeholder="$mode === 'list' ? 'Add item' : 'Message...'"
 		/>
 		<button class="btn-icon" data-attr:disabled="$msg === ''" type="submit">
 			@IconPlus()
 		</button>
 	</form>
-}
-
-templ Chat() {
-	<div class="sticky bottom-0 z-10 bg-page shadow-up rounded-top mb-0 p-1">
-		@ChatInput()
-	</div>
 }

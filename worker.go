@@ -34,6 +34,12 @@ func RunBackgroundWorker(
 			return
 		case ev := <-sub.Ch:
 			switch ev := ev.(type) {
+			case events.ChatOpened:
+				log.Info("ChatOpened", "cartID", ev.CartID, "userID", ev.UserID)
+				if err := repo.UpdateChatSeenAt(ev.CartID, ev.UserID); err != nil {
+					log.Error("Failed to update chat_seen_at", "error", err)
+				}
+
 			case events.UserRegistered:
 				log.Info("User registered", "userID", ev.UserID)
 				repo.Save(carts.New().
