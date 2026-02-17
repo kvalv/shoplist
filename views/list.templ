@@ -3,10 +3,10 @@ package views
 import "github.com/kvalv/shoplist/carts"
 import "github.com/kvalv/shoplist/stores"
 
-templ List(items []*carts.Item) {
+templ List(items []*carts.Item, s stores.Store) {
 	<div class="flex-col gap-1">
 		for _, item := range items {
-			@CartItem(item, false, stores.ClasOhlson)
+			@CartItem(item, false, s)
 		}
 	</div>
 }

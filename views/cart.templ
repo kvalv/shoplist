@@ -34,7 +34,7 @@ templ Cart(current *carts.Cart, choices []*carts.Cart, messages []*carts.Message
 			<main class="container" style="flex: 1;">
 				switch mode {
 					case "list":
-						@List(current.Items)
+						@List(current.Items, current.TargetStore)
 					case "shop":
 						@Shop(current.Items)
 					case "chat":
