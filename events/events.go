@@ -10,7 +10,8 @@ type (
 		ItemIDs []string
 	}
 	CartCreated struct {
-		CartID string
+		CartID    string
+		CreatedBy *string
 	}
 	CartSwitched struct {
 		UserID string

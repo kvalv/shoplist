@@ -33,7 +33,16 @@ func NewSwitchCart(
 				return
 			}
 			log.Info("new cart created", "cartID", cart.ID, "name", name, "createdBy", claims.UserID)
-			bus.Publish(events.CartCreated{CartID: cart.ID})
+			msg := carts.NewMessage(cart.ID, "Cart created")
+			if claims.UserID != "" {
+				msg.WithUser(claims.UserID)
+			} else {
+				msg.WithSystem()
+			}
+			if err := repo.AddMessage(msg); err != nil {
+				log.Error("failed to add cart-created message", "error", err)
+			}
+			bus.Publish(events.CartCreated{CartID: cart.ID, CreatedBy: &claims.UserID})
 			return
 
 		}

@@ -38,7 +38,7 @@ func CloudflareAccessAuth() func(http.Handler) http.Handler {
 func NewMockAuth(claims *Claims) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			next.ServeHTTP(w, r.WithContext(withClaims(r.Context(), claims)))
+			next.ServeHTTP(w, r.WithContext(WithClaims(r.Context(), claims)))
 		})
 	}
 }
@@ -86,6 +86,6 @@ func RegisterUsers(
 	}
 }
 
-func withClaims(ctx context.Context, claims *Claims) context.Context {
+func WithClaims(ctx context.Context, claims *Claims) context.Context {
 	return context.WithValue(ctx, ctxKey, claims)
 }
