@@ -288,6 +288,25 @@ func (r *SqliteRepository) DiscardItem(itemID, userID string) (cartID string, er
 }
 
 
+func (r *SqliteRepository) ReorderItems(cartID string) error {
+	_, err := r.db.Exec(`
+		WITH ranked AS (
+			SELECT id,
+				ROW_NUMBER() OVER (
+					ORDER BY
+						CASE WHEN discarded THEN 2 WHEN checked THEN 1 ELSE 0 END,
+						created_at ASC
+				) - 1 AS new_order
+			FROM items
+			WHERE cart_id = ?
+		)
+		UPDATE items SET sort_order = ranked.new_order
+		FROM ranked WHERE items.id = ranked.id`,
+		cartID,
+	)
+	return err
+}
+
 func (r *SqliteRepository) UpdateChatSeenAt(cartID, userID string) error {
 	_, err := r.db.Exec(
 		`UPDATE collaborators SET chat_seen_at = ? WHERE cart_id = ? AND user_id = ?`,

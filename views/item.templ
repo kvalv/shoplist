@@ -28,6 +28,7 @@ templ ShoppingItem(item *carts.Item, s stores.Store) {
 				data-init={ f("el.checked = %t", item.Checked) }
 				type="checkbox"
 				style="margin: 0;"
+				disabled?={ item.Discarded }
 			/>
 			if s == stores.ClasOhlson {
 				if selected := item.Clas.Selected(); selected != nil {
@@ -56,6 +57,7 @@ templ ShoppingItem(item *carts.Item, s stores.Store) {
 		<button
 			class="btn-icon btn-icon-sm text-secondary"
 			data-on:click={ f("document.getElementById('discard-%s').showModal()", item.ID) }
+			disabled?={ item.Discarded }
 		>
 			@IconX()
 		</button>

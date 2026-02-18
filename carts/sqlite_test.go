@@ -586,6 +586,36 @@ func TestSortOrder(t *testing.T) {
 	})
 }
 
+func TestReorderItems(t *testing.T) {
+	repo := NewTestRepository(t).WithUsers("alice")
+
+	cart := New()
+	a := cart.Add("unchecked", "alice")
+	b := cart.Add("checked", "alice")
+	c := cart.Add("discarded", "alice")
+	d := cart.Add("also-unchecked", "alice")
+	b.Checked = true
+	c.Discarded = true
+	repo.MustSave(cart)
+
+	if err := repo.ReorderItems(cart.ID); err != nil {
+		t.Fatalf("ReorderItems() error: %v", err)
+	}
+
+	got, err := repo.Cart(cart.ID)
+	if err != nil {
+		t.Fatalf("Cart() error: %v", err)
+	}
+
+	// Expected order: unchecked (by created_at), checked, discarded
+	wantIDs := []string{a.ID, d.ID, b.ID, c.ID}
+	for i, wantID := range wantIDs {
+		if got.Items[i].ID != wantID {
+			t.Errorf("items[%d].ID = %q (%s), want %q", i, got.Items[i].ID, got.Items[i].Text, wantID)
+		}
+	}
+}
+
 func expectItem(t *testing.T, repo *TestRepository, cartID string, itemID string, cb func(item *Item)) {
 	cart, err := repo.Cart(cartID)
 	if err != nil {

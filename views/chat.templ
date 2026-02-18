@@ -43,19 +43,29 @@ templ ChatHistory(cart *carts.Cart, messages []*carts.Message) {
 }
 
 templ ChatInput(cartID string, mode string) {
-	<div class="chat-toggle mb-1">
-		<a href={ urlf("/%s/list", cartID) } class={ "chat-toggle-item pointer flex items-center gap-half", templ.KV("chat-toggle-active", mode == "list") }>
-			@IconList()
-			List
-		</a>
-		<a href={ urlf("/%s/chat", cartID) } class={ "chat-toggle-item pointer flex items-center gap-half", templ.KV("chat-toggle-active", mode == "chat") }>
-			@IconChatBubble()
-			Chat
-		</a>
-		<a href={ urlf("/%s/shop", cartID) } class={ "chat-toggle-item pointer flex items-center gap-half", templ.KV("chat-toggle-active", mode == "shop") }>
-			@IconShoppingCart()
-			Shop
-		</a>
+	<div class="flex items-center mb-1">
+		<div class="chat-toggle">
+			<a href={ urlf("/%s/list", cartID) } class={ "chat-toggle-item pointer flex items-center gap-half", templ.KV("chat-toggle-active", mode == "list") }>
+				@IconList()
+				List
+			</a>
+			<a href={ urlf("/%s/chat", cartID) } class={ "chat-toggle-item pointer flex items-center gap-half", templ.KV("chat-toggle-active", mode == "chat") }>
+				@IconChatBubble()
+				Chat
+			</a>
+			<a href={ urlf("/%s/shop", cartID) } class={ "chat-toggle-item pointer flex items-center gap-half", templ.KV("chat-toggle-active", mode == "shop") }>
+				@IconShoppingCart()
+				Shop
+			</a>
+		</div>
+		<div class="flex-grow"></div>
+		<button
+			class="btn-icon"
+			data-on:click__prevent={ f("@post('/reorder/%s')", cartID) }
+			disabled?={ mode == "shop" }
+		>
+			@IconArrowsDownUp()
+		</button>
 	</div>
 	<form class="form-chat flex gap-1" data-on:submit="@post('/add')">
 		<input

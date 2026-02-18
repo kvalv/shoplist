@@ -212,6 +212,7 @@ func run(ctx context.Context, log *slog.Logger) error {
 	r.HandleFunc("/delete", commands.NewDeleteItem(repo, bus))
 	r.HandleFunc("/not-found", commands.NewNotFound(repo, bus))
 	r.HandleFunc("/discard/{id}/{reason}", commands.NewDiscardItem(repo, bus))
+	r.HandleFunc("/reorder/{id}", commands.NewReorderItems(repo, bus))
 
 	log.Info("starting server", "addr", server.Addr)
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
