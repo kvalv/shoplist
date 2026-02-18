@@ -61,8 +61,8 @@ templ ChatInput(cartID string, mode string) {
 		<div class="flex-grow"></div>
 		<button
 			class="btn-icon"
-			data-on:click__prevent={ f("@post('/reorder/%s')", cartID) }
-			disabled?={ mode == "shop" }
+			data-on:click={ f("@post('/reorder/%s')", cartID) }
+			aria-label="Reorder items"
 		>
 			@IconArrowsDownUp()
 		</button>
