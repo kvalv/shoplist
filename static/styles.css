@@ -1,3 +1,8 @@
+.discarded {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+
 html,
 body {
   background-color: #faf8f5;
