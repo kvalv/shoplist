@@ -4,7 +4,7 @@ import "github.com/kvalv/shoplist/carts"
 import "github.com/kvalv/shoplist/stores"
 
 templ Shop(items []*carts.Item) {
-	<div class="flex-col gap-1" data-init="new MutationObserver(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })).observe(el, { childList: true })">
+	<div class="flex-col gap-1" data-init="let n = el.children.length; new MutationObserver(() => { if (el.children.length > n) window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); n = el.children.length; }).observe(el, { childList: true })">
 		for _, item := range items {
 			@CartItem(item, true, stores.ClasOhlson)
 		}
