@@ -369,6 +369,37 @@ svg {
   color: var(--pico-secondary);
 }
 
+.chat-system {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: var(--pico-muted-color);
+  padding: 4px 0;
+  white-space: nowrap;
+}
+.chat-system::before,
+.chat-system::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid var(--pico-muted-border-color);
+}
+
+.chat-assistant {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background-color: rgba(99, 102, 241, 0.08);
+  font-size: 0.85rem;
+  color: var(--pico-secondary);
+}
+
+.chat-assistant-name {
+  font-size: 0.75rem;
+  color: rgba(99, 102, 241, 0.7);
+}
+
 .chat-chip {
   display: inline-block;
   background-color: rgba(46, 139, 87, 0.12);

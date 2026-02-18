@@ -17,14 +17,23 @@ func itemName(cart *carts.Cart, itemID *string) string {
 }
 
 templ ChatMessage(msg *carts.Message, cart *carts.Cart) {
-	<div class="chat-bubble">
-		<span class="chat-name"><span class="fw-600">{ derefOr(msg.UserID, string(msg.Role)) }</span> <span class="fw-300">{ msg.CreatedAt.Format("15:04") }</span></span>
-		if msg.ItemID != nil {
-			<span>{ msg.Text } <a href={ urlf("#item-%s", *msg.ItemID) } class="chat-chip">{ itemName(cart, msg.ItemID) }</a></span>
-		} else {
+	if msg.Role == carts.RoleSystem {
+		<div class="chat-system">{ msg.Text } · { msg.CreatedAt.Format("15:04") }</div>
+	} else if msg.Role == carts.RoleAssistant {
+		<div class="chat-assistant">
+			<span class="chat-assistant-name flex items-center gap-quarter">@IconSparkle() <span class="fw-600">Assistant</span> <span class="fw-300">{ msg.CreatedAt.Format("15:04") }</span></span>
 			<span>{ msg.Text }</span>
-		}
-	</div>
+		</div>
+	} else {
+		<div class="chat-bubble">
+			<span class="chat-name"><span class="fw-600">{ derefOr(msg.UserID, string(msg.Role)) }</span> <span class="fw-300">{ msg.CreatedAt.Format("15:04") }</span></span>
+			if msg.ItemID != nil {
+				<span>{ msg.Text } <a href={ urlf("#item-%s", *msg.ItemID) } class="chat-chip">{ itemName(cart, msg.ItemID) }</a></span>
+			} else {
+				<span>{ msg.Text }</span>
+			}
+		</div>
+	}
 }
 
 func derefOr(p *string, fallback string) string {
