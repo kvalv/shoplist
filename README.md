@@ -40,3 +40,4 @@ Looks like we can use [contenteditable](https://developer.mozilla.org/en-US/docs
 - css: padding 1 2 3 4 means top right bottom left.
 - css: padding 1 2 means top/bottom and left/right.
 - css: border-radius 1 2 3 4 means top-left, top-right, bottom-right, bottom-left.
+- Element.scrollIntoView()

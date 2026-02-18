@@ -6,7 +6,14 @@ import "github.com/kvalv/shoplist/stores/clasohlson"
 import "time"
 
 templ CartItem(item *carts.Item, isShopping bool, s stores.Store) {
-	<div id={ f("item-%s", item.ID) } class={ "border rounded-sm shadow-sm p-1", templ.KV("discarded", item.Discarded) } style="background:#fff">
+	<div
+		id={ f("item-%s", item.ID) }
+		class={ "border rounded-sm shadow-sm px-1", 
+        templ.KV("p-1", !isShopping), 
+        templ.KV("py-quarter", isShopping), 
+        templ.KV("discarded", item.Discarded) }
+		style="background:#fff"
+	>
 		if isShopping {
 			@ShoppingItem(item, s)
 		} else if s == stores.ClasOhlson {

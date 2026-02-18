@@ -1,3 +1,4 @@
 *_templ.go
 shop.db
 tags
+.env
