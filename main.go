@@ -17,7 +17,9 @@ import (
 	"github.com/kvalv/shoplist/commands"
 	"github.com/kvalv/shoplist/cron"
 	"github.com/kvalv/shoplist/devtools"
+	"github.com/kvalv/shoplist/env"
 	"github.com/kvalv/shoplist/events"
+	"github.com/kvalv/shoplist/homeassistant"
 	"github.com/kvalv/shoplist/logger"
 	"github.com/kvalv/shoplist/migrations"
 	"github.com/kvalv/shoplist/views"
@@ -46,6 +48,16 @@ func main() {
 }
 
 func run(ctx context.Context, log *slog.Logger) error {
+	cfg := env.Load()
+	if cfg.HOMEASSISTANT_BASE_URL != "" {
+		ha := homeassistant.NewClient(cfg.HOMEASSISTANT_BASE_URL, cfg.HOMEASSISTANT_TOKEN)
+		if err := ha.Ping(); err != nil {
+			log.Warn("Home Assistant unreachable", "error", err)
+		} else {
+			log.Info("Home Assistant connected", "url", cfg.HOMEASSISTANT_BASE_URL)
+		}
+	}
+
 	db, err := sql.Open("sqlite", "file:shop.db?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)")
 	if err != nil {
 		log.Error("failed to open db", "error", err)
