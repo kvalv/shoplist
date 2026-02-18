@@ -35,6 +35,7 @@ func (c *Cart) Add(text string, userID string) *Item {
 		UpdatedAt: now,
 		CreatedBy: userID,
 		UpdatedBy: userID,
+		SortOrder: len(c.Items),
 	}
 	c.Items = prepend(c.Items, item)
 	return item

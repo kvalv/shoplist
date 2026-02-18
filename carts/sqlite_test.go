@@ -526,6 +526,66 @@ func TestUnseenMessageCount(t *testing.T) {
 	})
 }
 
+func TestSortOrder(t *testing.T) {
+	repo := NewTestRepository(t).WithUsers("alice")
+
+	cart := New()
+	a := cart.Add("first", "alice")
+	b := cart.Add("second", "alice")
+	c := cart.Add("third", "alice")
+	repo.MustSave(cart)
+
+	t.Run("auto-assigned on add", func(t *testing.T) {
+		if a.SortOrder != 0 {
+			t.Errorf("first item sort_order = %d, want 0", a.SortOrder)
+		}
+		if b.SortOrder != 1 {
+			t.Errorf("second item sort_order = %d, want 1", b.SortOrder)
+		}
+		if c.SortOrder != 2 {
+			t.Errorf("third item sort_order = %d, want 2", c.SortOrder)
+		}
+	})
+
+	t.Run("persisted and loaded in order", func(t *testing.T) {
+		got, err := repo.Cart(cart.ID)
+		if err != nil {
+			t.Fatalf("Cart() error: %v", err)
+		}
+		if len(got.Items) != 3 {
+			t.Fatalf("expected 3 items, got %d", len(got.Items))
+		}
+		wantTexts := []string{"first", "second", "third"}
+		for i, want := range wantTexts {
+			if got.Items[i].Text != want {
+				t.Errorf("items[%d].Text = %q, want %q", i, got.Items[i].Text, want)
+			}
+			if got.Items[i].SortOrder != i {
+				t.Errorf("items[%d].SortOrder = %d, want %d", i, got.Items[i].SortOrder, i)
+			}
+		}
+	})
+
+	t.Run("reorder persists", func(t *testing.T) {
+		// swap first and third
+		got, _ := repo.Cart(cart.ID)
+		got.Items[0].SortOrder = 2
+		got.Items[2].SortOrder = 0
+		repo.MustSave(got)
+
+		got2, err := repo.Cart(cart.ID)
+		if err != nil {
+			t.Fatalf("Cart() error: %v", err)
+		}
+		wantTexts := []string{"third", "second", "first"}
+		for i, want := range wantTexts {
+			if got2.Items[i].Text != want {
+				t.Errorf("after reorder: items[%d].Text = %q, want %q", i, got2.Items[i].Text, want)
+			}
+		}
+	})
+}
+
 func expectItem(t *testing.T, repo *TestRepository, cartID string, itemID string, cb func(item *Item)) {
 	cart, err := repo.Cart(cartID)
 	if err != nil {

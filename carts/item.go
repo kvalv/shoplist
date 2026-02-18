@@ -16,6 +16,7 @@ type Item struct {
 	CreatedBy  string    `db:"created_by"`
 	ClasChosen *string   `db:"clas_chosen"`
 	Discarded  bool      `db:"discarded"`
+	SortOrder  int       `db:"sort_order"`
 
 	Clas *ClasSearch `db:"-"`
 }

@@ -56,7 +56,8 @@ CREATE TABLE IF NOT EXISTS items(
     created_by text REFERENCES users(user_id) ON DELETE SET NULL,
     updated_by text REFERENCES users(user_id) ON DELETE SET NULL,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    clas_chosen text
+    clas_chosen text,
+    sort_order integer NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS clas_candidates(

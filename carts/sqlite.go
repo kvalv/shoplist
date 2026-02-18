@@ -56,9 +56,9 @@ func (r *SqliteRepository) saveItem(cartID string, item *Item) error {
 		chosen = &item.Clas.Chosen
 	}
 	_, err = tx.Exec(
-		`INSERT INTO items (id, cart_id, text, checked, created_at, updated_at, created_by, updated_by, clas_chosen, discarded) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-		 ON CONFLICT(id) DO UPDATE SET checked = excluded.checked, updated_at = excluded.updated_at, updated_by = excluded.updated_by, clas_chosen = excluded.clas_chosen, discarded = excluded.discarded`,
-		item.ID, cartID, item.Text, item.Checked, item.CreatedAt, item.UpdatedAt, item.CreatedBy, item.UpdatedBy, chosen, item.Discarded,
+		`INSERT INTO items (id, cart_id, text, checked, created_at, updated_at, created_by, updated_by, clas_chosen, discarded, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		 ON CONFLICT(id) DO UPDATE SET checked = excluded.checked, updated_at = excluded.updated_at, updated_by = excluded.updated_by, clas_chosen = excluded.clas_chosen, discarded = excluded.discarded, sort_order = excluded.sort_order`,
+		item.ID, cartID, item.Text, item.Checked, item.CreatedAt, item.UpdatedAt, item.CreatedBy, item.UpdatedBy, chosen, item.Discarded, item.SortOrder,
 	)
 
 	if err != nil {
@@ -118,7 +118,7 @@ func (r *SqliteRepository) Cart(ID string) (*Cart, error) {
 }
 
 func (r *SqliteRepository) loadCartItems(cart *Cart) (*Cart, error) {
-	if err := many(&cart.Items, r.db, `SELECT id, text, checked, created_at, updated_at, clas_chosen, created_by, updated_by, discarded FROM items WHERE cart_id = ? ORDER BY created_at ASC`, cart.ID); err != nil {
+	if err := many(&cart.Items, r.db, `SELECT id, text, checked, created_at, updated_at, clas_chosen, created_by, updated_by, discarded, sort_order FROM items WHERE cart_id = ? ORDER BY sort_order ASC`, cart.ID); err != nil {
 		return nil, err
 	}
 
