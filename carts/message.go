@@ -11,14 +11,16 @@ const (
 )
 
 type Message struct {
-	ID        string  `db:"id"`
-	CartID    string  `db:"cart_id"`
-	Role      Role    `db:"role"`
-	UserID    *string `db:"user_id"`
-	Text      string  `db:"text"`
-	ItemID    *string `db:"item_id"`
-	Picture   *string `db:"picture"`
-	CreatedAt time.Time `db:"created_at"`
+	ID          string    `db:"id"`
+	CartID      string    `db:"cart_id"`
+	Role        Role      `db:"role"`
+	UserID      *string   `db:"user_id"`
+	Text        string    `db:"text"`
+	ItemID      *string   `db:"item_id"`
+	Picture     *string   `db:"picture"`
+	CreatedAt   time.Time `db:"created_at"`
+	UserName    *string   `db:"user_name"`
+	UserPicture *string   `db:"user_picture"`
 }
 
 func NewMessage(cartID, text string) *Message {

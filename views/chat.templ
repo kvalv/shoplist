@@ -26,7 +26,15 @@ templ ChatMessage(msg *carts.Message, cart *carts.Cart) {
 		</div>
 	} else {
 		<div class="chat-bubble">
-			<span class="chat-name"><span class="fw-600">{ derefOr(msg.UserID, string(msg.Role)) }</span> <span class="fw-300">{ msg.CreatedAt.Format("15:04") }</span></span>
+			<span class="chat-name flex items-center gap-half">
+				if msg.UserPicture != nil {
+					<img src={ *msg.UserPicture } class="chat-avatar" alt="" />
+				} else {
+					<span class="chat-avatar-placeholder">?</span>
+				}
+				<span class="fw-600">{ derefOr(msg.UserName, derefOr(msg.UserID, string(msg.Role))) }</span>
+				<span class="fw-300">{ msg.CreatedAt.Format("15:04") }</span>
+			</span>
 			if msg.ItemID != nil {
 				<span>{ msg.Text } <a href={ urlf("#item-%s", *msg.ItemID) } class="chat-chip">{ itemName(cart, msg.ItemID) }</a></span>
 			} else {

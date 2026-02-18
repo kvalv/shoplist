@@ -209,7 +209,7 @@ func (r *SqliteRepository) AddMessage(msg *Message) error {
 
 func (r *SqliteRepository) Message(id string) (*Message, error) {
 	var msg Message
-	if err := get(r.db, &msg, `SELECT id, cart_id, role, user_id, text, item_id, picture, created_at FROM messages WHERE id = ?`, id); err != nil {
+	if err := get(r.db, &msg, `SELECT m.id, m.cart_id, m.role, m.user_id, m.text, m.item_id, m.picture, m.created_at, u.name as user_name, u.picture as user_picture FROM messages m LEFT JOIN users u ON m.user_id = u.user_id WHERE m.id = ?`, id); err != nil {
 		return nil, err
 	}
 	return &msg, nil
@@ -217,7 +217,7 @@ func (r *SqliteRepository) Message(id string) (*Message, error) {
 
 func (r *SqliteRepository) Messages(cartID string) ([]*Message, error) {
 	var msgs []*Message
-	if err := many(&msgs, r.db, `SELECT id, cart_id, role, user_id, text, item_id, picture, created_at FROM messages WHERE cart_id = ? ORDER BY created_at ASC`, cartID); err != nil {
+	if err := many(&msgs, r.db, `SELECT m.id, m.cart_id, m.role, m.user_id, m.text, m.item_id, m.picture, m.created_at, u.name as user_name, u.picture as user_picture FROM messages m LEFT JOIN users u ON m.user_id = u.user_id WHERE m.cart_id = ? ORDER BY m.created_at ASC`, cartID); err != nil {
 		return nil, err
 	}
 	return msgs, nil

@@ -104,11 +104,12 @@ func run(ctx context.Context, log *slog.Logger) error {
 
 	r := chi.NewRouter().With(
 		logger.Middleware(log),
-		auth.NewMockAuth(&auth.Claims{
-			UserID: "userID123",
-			Name:   "Markus Berg Lavby",
-			Email:  "kongenbefaler@email.com",
-		}),
+		auth.CloudflareAccessAuth(&auth.Claims{
+			UserID:  "userID123",
+			Name:    "Markus Berg Lavby",
+			Email:   "kongenbefaler@email.com",
+			Picture: "https://api.dicebear.com/9.x/thumbs/svg?seed=Markus",
+		}, baseLogger("auth")),
 		auth.RegisterUsers(db, baseLogger("auth"), bus),
 	)
 	server := http.Server{

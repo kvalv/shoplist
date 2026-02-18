@@ -3,3 +3,4 @@ shop.db*
 tags
 .env
 PLAN.md
+cloudflared.yml
