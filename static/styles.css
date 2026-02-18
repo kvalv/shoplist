@@ -1,3 +1,28 @@
+@view-transition {
+  navigation: auto;
+}
+
+/* To drawer: old exits left, drawer enters from right */
+html:active-view-transition-type(to-drawer)::view-transition-old(root) {
+  animation: 200ms ease slide-to-left;
+}
+html:active-view-transition-type(to-drawer)::view-transition-new(root) {
+  animation: 200ms ease slide-from-right;
+}
+
+/* To cart: old exits right, cart enters from left */
+html:active-view-transition-type(to-cart)::view-transition-old(root) {
+  animation: 200ms ease slide-to-right;
+}
+html:active-view-transition-type(to-cart)::view-transition-new(root) {
+  animation: 200ms ease slide-from-left;
+}
+
+@keyframes slide-to-left { to { transform: translateX(-100%); } }
+@keyframes slide-from-left { from { transform: translateX(-100%); } }
+@keyframes slide-to-right { to { transform: translateX(100%); } }
+@keyframes slide-from-right { from { transform: translateX(100%); } }
+
 .discarded {
   text-decoration: line-through;
   opacity: 0.5;

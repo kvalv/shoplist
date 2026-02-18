@@ -9,5 +9,23 @@ templ Head() {
 			href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.sand.min.css"
 		/>
 		<link rel="stylesheet" href="/static/styles.css?"/>
+		<script lang="js">
+			addEventListener("pageswap", (e) => {
+				if (!e.viewTransition) return;
+				const to = new URL(e.activation.entry.url).pathname;
+				const from = location.pathname;
+				if (to === "/drawer") e.viewTransition.types.add("to-drawer");
+				else if (from === "/drawer") e.viewTransition.types.add("to-cart");
+				else e.viewTransition.skipTransition();
+			});
+			addEventListener("pagereveal", (e) => {
+				if (!e.viewTransition) return;
+				const from = navigation.activation?.from;
+				const fromPath = from ? new URL(from.url).pathname : null;
+				if (location.pathname === "/drawer") e.viewTransition.types.add("to-drawer");
+				else if (fromPath === "/drawer") e.viewTransition.types.add("to-cart");
+				else e.viewTransition.skipTransition();
+			});
+		</script>
 	</head>
 }

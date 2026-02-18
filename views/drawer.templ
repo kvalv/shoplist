@@ -14,11 +14,11 @@ templ CartDrawerPage(activeID string, choices []*carts.Cart) {
 			style="min-height: 100vh;"
 			data-signals:newCartStore={ q(f("%d", stores.General)) }
 		>
-			<nav class="flex items-center gap-1 sticky top-0 z-10 bg-page shadow-down rounded-bottom p-1">
-				<span class="fw-500 flex-grow">Carts</span>
-				<button class="btn-icon" onclick="history.back()">
-					@IconX()
-				</button>
+			<nav class="flex items-center gap-half sticky top-0 z-10 bg-page shadow-down rounded-bottom p-1">
+				<a class="btn-icon" onclick="history.back()">
+					@IconArrowLeft()
+				</a>
+				<span class="fw-500">Carts</span>
 			</nav>
 			<main class="container" style="padding: 16px;">
 				<button
